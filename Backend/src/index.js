@@ -17,6 +17,7 @@ app.use(authMiddleware.decodeToken);
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/file", require("./routes/upload.routes"));
 app.use("/api/report", require("./routes/report.routes"));
+app.use("/api/project", require("./routes/project.routes"));
 
 const server = new ApolloServer({
     typeDefs,
