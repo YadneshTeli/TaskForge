@@ -9,6 +9,7 @@ const resolvers = require("./resolvers");
 const authMiddleware = require("./middleware/auth.middleware");
 const rateLimit = require("./middleware/rateLimit.middleware");
 const errorHandler = require("./middleware/errorHandler");
+const securityMiddleware = require('./middleware/security.middleware');
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use(express.json());
 app.use(graphqlUploadExpress());
 app.use(authMiddleware.decodeToken);
 app.use(rateLimit);
+securityMiddleware(app);
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/file", require("./routes/upload.routes"));

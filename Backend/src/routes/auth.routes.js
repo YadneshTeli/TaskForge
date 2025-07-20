@@ -13,9 +13,47 @@ const { protect } = require("../middleware/auth.middleware");
 const validation = require('../middleware/validation.middleware');
 const validate = require('../utils/validate');
 const LogService = require('../services/log.service');
+const { body, validationResult } = require('express-validator');
+const helmet = require('helmet');
+const xss = require('xss-clean');
+const rateLimit = require('../middleware/rateLimit.middleware');
+const { permissions } = require('../config/roles');
 
+router.use(helmet());
+router.use(xss());
+router.use(rateLimit);
+
+function checkRole(requiredRole) {
+    return (req, res, next) => {
+        if (!req.user || req.user.role !== requiredRole) {
+            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
+        }
+        next();
+    };
+}
+
+function checkRoles(allowedRoles) {
+    return (req, res, next) => {
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
+        }
+        next();
+    };
+}
+
+function checkRolesFor(action) {
+    return (req, res, next) => {
+        if (!req.user || !permissions[action].includes(req.user.role)) {
+            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
+        }
+        next();
+    };
+}
+
+// Only admin and manager can register
 router.post(
   "/register",
+  checkRolesFor('register'),
   validation({
     email: [{ fn: validate.isEmail, message: "Invalid email" }],
     password: [{ fn: validate.minLength, args: [8], message: "Password too short" }],
@@ -31,12 +69,15 @@ router.post(
   }
 );
 
-router.post(
-  "/login",
-  validation({
-    email: [{ fn: validate.isEmail, message: "Invalid email" }],
-    password: [{ fn: validate.isRequired, message: "Password required" }]
-  }),
+router.post('/login',
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+    },
   protect,
   async (req, res) => {
     const { email, password } = req.body;
@@ -68,5 +109,29 @@ router.post("/logout", (req, res) => {
   res.clearCookie("refreshToken", cookieOptions);
   res.json({ message: "Logged out" });
 });
+
+// Only admin, manager, user, and viewer can view profile
+router.get('/profile',
+    checkRolesFor('view'),
+    (req, res, next) => {
+        // ...existing profile logic...
+    }
+);
+
+// Only admin can delete users
+router.delete('/user/:id',
+    checkRolesFor('deleteUser'),
+    (req, res, next) => {
+        // ...existing delete user logic...
+    }
+);
+
+// Only user and manager can update profile
+router.put('/profile',
+    checkRolesFor('updateProfile'),
+    (req, res, next) => {
+        // ...existing update profile logic...
+    }
+);
 
 module.exports = router;
