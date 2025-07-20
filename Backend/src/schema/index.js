@@ -1,6 +1,8 @@
 const { gql } = require("apollo-server-express");
 
 module.exports = gql`
+    scalar Upload
+
     type User {
         id: ID!
         email: String!
