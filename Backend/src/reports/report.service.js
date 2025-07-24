@@ -1,14 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
 const PDFDocument = require('pdfkit');
-const prisma = new PrismaClient();
+const Project = require('../models/project.model');
+const Task = require('../models/task.model');
+const Comment = require('../models/comment.model');
 
 function formatTasksTable(tasks) {
     let table = 'Title           | Status    | Due Date\n';
     table += '-------------------------------------\n';
     tasks.forEach(task => {
-        table += `${task.title.padEnd(15)}| ${task.status.padEnd(10)}| ${task.dueDate || ''}\n`;
+        table += `${task.title.padEnd(15)}| ${task.status.padEnd(10)}| ${task.dueDate ? task.dueDate.toLocaleDateString() : ''}\n`;
     });
     return table;
 }
@@ -26,7 +27,7 @@ function formatCommentsTable(comments) {
     let table = 'Content         | Created At\n';
     table += '-------------------------------------\n';
     comments.forEach(comment => {
-        table += `${comment.content.padEnd(15)}| ${comment.createdAt}\n`;
+        table += `${comment.text.padEnd(15)}| ${comment.createdAt.toLocaleDateString()}\n`;
     });
     return table;
 }
@@ -35,14 +36,12 @@ function formatCommentsTable(comments) {
 module.exports = {
     async generateReport({ projectId, format = 'pdf' }) {
         // Fetch project and related data from DB
-        const project = await prisma.project.findUnique({
-            where: { id: projectId },
-            include: {
-                tasks: true,
-                members: true,
-                comments: true
-            }
-        });
+        const project = await Project.findById(projectId)
+            .populate('tasks')
+            .populate('members')
+            .populate('comments')
+            .lean();
+            
         if (!project) throw new Error('Project not found');
 
         if (format === 'pdf') {
@@ -73,11 +72,11 @@ module.exports = {
             return reportPath;
         } else if (format === 'csv') {
             // Generate CSV report
-            let csv = `Project Name,${project.name}\nDescription,${project.description}\nDue Date,${project.dueDate}\nStatus,${project.status}\n`;
+            let csv = `Project Name,${project.name}\nDescription,${project.description || ''}\nDue Date,${project.dueDate ? project.dueDate.toLocaleDateString() : ''}\nStatus,${project.status}\n`;
             csv += '\nTasks:\n';
             csv += 'Title,Status,DueDate\n';
             project.tasks.forEach(task => {
-                csv += `${task.title},${task.status},${task.dueDate}\n`;
+                csv += `${task.title},${task.status},${task.dueDate ? task.dueDate.toLocaleDateString() : ''}\n`;
             });
             csv += '\nMembers:\n';
             csv += 'Username,Email\n';
@@ -85,9 +84,9 @@ module.exports = {
                 csv += `${member.username},${member.email}\n`;
             });
             csv += '\nComments:\n';
-            csv += 'Content,CreatedAt\n';
+            csv += 'Text,CreatedAt\n';
             project.comments.forEach(comment => {
-                csv += `${comment.content},${comment.createdAt}\n`;
+                csv += `${comment.text},${comment.createdAt.toLocaleDateString()}\n`;
             });
             const reportPath = path.join(__dirname, '../../reports', `project_${projectId}_report.csv`);
             await fs.promises.writeFile(reportPath, csv);
