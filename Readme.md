@@ -1,5 +1,9 @@
 # TaskForge
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Contributors](https://img.shields.io/github/contributors/YadneshTeli/TaskForge)
+![Issues](https://img.shields.io/github/issues/YadneshTeli/TaskForge)
+![Pull Requests](https://img.shields.io/github/issues-pr/YadneshTeli/TaskForge)
+![Stars](https://img.shields.io/github/stars/YadneshTeli/TaskForge?style=social)
 
 ## Overview
 TaskForge is a full-stack, cross-platform project and task management solution. It provides robust features for team collaboration, project tracking, custom workflows, and reporting. The backend is built with Node.js, Express, and Prisma ORM, while the frontend includes both a Flutter app and a React web client.
@@ -43,6 +47,11 @@ TaskForge/
 - **React Web Client**: Fast, modern web interface using Vite.
 
 ## Setup & Installation
+
+### **Prerequisites**
+- **Node.js ≥ 18**
+- **npm ≥ 8** or **yarn**
+- **PostgreSQL** or Supabase account
 
 ### Backend
 1. Navigate to the `Backend` folder:

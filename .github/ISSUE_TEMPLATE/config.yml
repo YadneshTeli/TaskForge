@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📄 Documentation
+    url: https://github.com/YadneshTeli/TaskForge/docs
+    about: Check the documentation before opening an issue.
+  - name: 💬 Discussions
+    url: https://github.com/YadneshTeli/TaskForge/discussions
+    about: Use discussions for questions or ideas.
