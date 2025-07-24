@@ -1,4 +1,5 @@
 # TaskForge
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## Overview
 TaskForge is a full-stack, cross-platform project and task management solution. It provides robust features for team collaboration, project tracking, custom workflows, and reporting. The backend is built with Node.js, Express, and Prisma ORM, while the frontend includes both a Flutter app and a React web client.
@@ -101,4 +102,4 @@ TaskForge/
 3. Ensure code follows project conventions and passes all tests.
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).
