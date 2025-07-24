@@ -106,9 +106,19 @@ TaskForge/
 - Interact with the backend via RESTful APIs for all project, task, user, and reporting features.
 
 ## Contributing
+We welcome contributions from the community!
+Please read our [CONTRIBUTING](./CONTRIBUTING.md) for instructions.
+ - For security issues, refer to our [SECURITY.md](/.github/SECURITY.md).
+ - Code ownership and responsibilities are outlined in CODEOWNERS.
 1. Fork the repository and create a new branch.
 2. Make your changes and submit a pull request.
-3. Ensure code follows project conventions and passes all tests.
+3. Ensure code follows project conventions.
 
 ## License
 This project is licensed under the [MIT License](./LICENSE).
+
+## 🤝 Code of Conduct
+Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) to ensure a respectful and inclusive environment.
+
+## 📬 Contact
+For queries or collaborations, reach out to Yadnesh Teli at [yadneshteli.dev@gmail.com].
