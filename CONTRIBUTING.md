@@ -20,9 +20,13 @@ These are mostly guidelines, not rules. Use your best judgment and feel free to 
 ### **Code Contributions**
 1. Fork the repository.
 2. Create a feature branch:  
-   ```bash
+   ```sh
    git checkout -b feature/your-feature-name
    ```
 3. Make your changes.
 4. Run tests (if available) to ensure nothing is broken.
 5. Commit with a clear and descriptive message:
+   ```sh
+   git commit -m "Add feature: your feature name"
+   ```
+
