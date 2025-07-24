@@ -29,4 +29,31 @@ These are mostly guidelines, not rules. Use your best judgment and feel free to 
    ```sh
    git commit -m "Add feature: your feature name"
    ```
+6. Push to your fork and submit a Pull Request.
 
+## **Pull Request Guidelines**
+ - PRs should be small, focused, and atomic.
+ - Write clear commit messages.
+ - Ensure your code follows ESLint/Prettier (if configured).
+ - Add comments for complex code logic.
+ - Include tests if your changes involve logic or functionality.
+
+## **Development Setup**
+ - Node.js >= 18 recommended.
+ - Install dependencies:
+   ```sh
+   npm install
+   ```
+ - Start development server:
+   ```sh
+   npm run dev
+   ```
+
+## **Community Guidelines**
+ - Be respectful and welcoming.
+ - Avoid spamming or self-promotion.
+ - Follow the [Code of Conduct](./CODE_OF_CONDUCT.md)
+
+---
+Happy coding! 🚀
+– The TaskForge Team
