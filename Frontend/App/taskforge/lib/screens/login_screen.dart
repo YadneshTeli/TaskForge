@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_event.dart';
 import '../blocs/auth/auth_state.dart';
+import '../widgets/quick_test_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -247,6 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+      floatingActionButton: const QuickTestButton(),
     );
       },
     );

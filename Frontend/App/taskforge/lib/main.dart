@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'config/app_config.dart';  
 import 'services/graphql_service.dart';
@@ -11,6 +12,7 @@ import 'blocs/auth/auth_state.dart';
 import 'blocs/task/task_bloc.dart';
 import 'blocs/project/project_bloc.dart';
 import 'blocs/notification/notification_bloc.dart';
+import 'utils/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +20,19 @@ void main() async {
   // Initialize app configuration
   AppConfig.init();
   
+  // Enable detailed logging in debug mode
+  if (kDebugMode) {
+    print('🚀 TaskForge starting...');
+    print('📡 API Base URL: ${ApiConstants.baseUrl}');
+    print('🔗 GraphQL URL: ${ApiConstants.graphqlUrl}');
+  }
+  
   // Initialize GraphQL service
   try {
     await GraphQLService.init();
-    print('GraphQL service initialized successfully');
+    print('✅ GraphQL service initialized successfully');
   } catch (e) {
-    print('Failed to initialize GraphQL service: $e');
+    print('❌ Failed to initialize GraphQL service: $e');
   }
   
   runApp(const TaskForgeApp());

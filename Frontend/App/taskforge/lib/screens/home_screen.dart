@@ -18,6 +18,7 @@ import 'tasks_screen.dart';
 import 'profile_screen.dart';
 import 'projects_screen.dart';
 import 'notifications_screen.dart';
+import 'network_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -122,12 +123,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 return PopupMenuButton<String>(
                   onSelected: (value) {
                     switch (value) {
+                      case 'network_test':
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const NetworkTestScreen(),
+                          ),
+                        );
+                        break;
                       case 'logout':
                         _handleLogout();
                         break;
                     }
                   },
                   itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'network_test',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.network_check, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          const Text('Network Test'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
                     PopupMenuItem(
                       value: 'logout',
                       child: Row(
