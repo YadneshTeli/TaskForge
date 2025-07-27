@@ -1,119 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'config/app_config.dart';  
+import 'services/graphql_service.dart';
+import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
+import 'blocs/auth/auth_bloc.dart';
+import 'blocs/auth/auth_event.dart';
+import 'blocs/auth/auth_state.dart';
+import 'blocs/task/task_bloc.dart';
+import 'blocs/project/project_bloc.dart';
+import 'blocs/notification/notification_bloc.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize app configuration
+  AppConfig.init();
+  
+  // Initialize GraphQL service
+  try {
+    await GraphQLService.init();
+    print('GraphQL service initialized successfully');
+  } catch (e) {
+    print('Failed to initialize GraphQL service: $e');
+  }
+  
+  runApp(const TaskForgeApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class TaskForgeApp extends StatelessWidget {
+  const TaskForgeApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (context) => AuthBloc(),
+        ),
+        BlocProvider<TaskBloc>(
+          create: (context) => TaskBloc(),
+        ),
+        BlocProvider<ProjectBloc>(
+          create: (context) => ProjectBloc(),
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (context) => NotificationBloc(),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'TaskForge',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          useMaterial3: true,
+        ),
+        home: const AuthWrapper(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  void _decrementCounter() {
-    setState(() {
-      _counter--;
-    });
-  }
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 8.0, right: 8.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FloatingActionButton(
-              onPressed: _incrementCounter,
-              tooltip: 'Increment',
-              child: const Icon(Icons.add),
-            ),
-            const SizedBox(width: 16),
-            FloatingActionButton(
-              onPressed: _decrementCounter,
-              tooltip: 'Decrement',
-              child: const Icon(Icons.remove),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    return BlocConsumer<AuthBloc, AuthState>(
+      listener: (context, state) {
+        // Handle side effects like navigation, snackbars, etc.
+        if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is AuthInitial || state is AuthLoading) {
+          // Check auth status when the app starts
+          if (state is AuthInitial) {
+            context.read<AuthBloc>().add(CheckAuthStatus());
+          }
+          return const SplashScreen();
+        }
+        
+        if (state is AuthAuthenticated) {
+          return const HomeScreen();
+        } else {
+          return const LoginScreen();
+        }
+      },
     );
   }
 }

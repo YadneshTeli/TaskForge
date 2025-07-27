@@ -15,14 +15,16 @@ datasource db {
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
+  id            Int               @id @default(autoincrement())
+  email         String            @unique
   password      String
   username      String
-  role          Role           @default(USER)
+  role          Role              @default(USER)
   projects      Project[]
-  notifications Notification[] @relation("UserToNotifications")
-  createdAt     DateTime       @default(now())
+  notifications Notification[]    @relation("UserToNotifications")
+  taskMetrics   TaskMetrics[]     @relation("TaskAssignee")
+  userStats     UserStats?        @relation("UserStatsRelation")
+  createdAt     DateTime          @default(now())
 }
 
 model Notification {
@@ -35,12 +37,14 @@ model Notification {
 }
 
 model Project {
-  id        Int      @id @default(autoincrement())
-  name      String
-  ownerId   Int
-  owner     User     @relation(fields: [ownerId], references: [id])
-  createdAt DateTime @default(now())
-  logs      Log[]
+  id          Int                @id @default(autoincrement())
+  name        String
+  ownerId     Int
+  owner       User               @relation(fields: [ownerId], references: [id])
+  createdAt   DateTime           @default(now())
+  logs        Log[]
+  taskMetrics TaskMetrics[]
+  analytics   ProjectAnalytics?
 }
 
 model Log {
@@ -49,6 +53,60 @@ model Log {
   projectId Int
   project   Project  @relation(fields: [projectId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model TaskMetrics {
+  id          Int      @id @default(autoincrement())
+  taskId      String   // MongoDB ObjectId as string
+  projectId   Int
+  title       String
+  status      String
+  timeSpent   Int      @default(0) // in minutes
+  priority    String?
+  assignedTo  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+  dueDate     DateTime?
+  project     Project  @relation(fields: [projectId], references: [id])
+  assignee    User?    @relation("TaskAssignee", fields: [assignedTo], references: [id])
+}
+
+model UserStats {
+  id                      Int      @id @default(autoincrement())
+  userId                  Int      @unique
+  totalTasksCreated       Int      @default(0)
+  totalTasksCompleted     Int      @default(0)
+  totalTasksPending       Int      @default(0)
+  totalTasksOverdue       Int      @default(0)
+  totalTasksInProgress    Int      @default(0)
+  totalProjectsOwned      Int      @default(0)
+  totalProjectsJoined     Int      @default(0)
+  totalCommentsPosted     Int      @default(0)
+  totalTimeSpent          Int      @default(0) // in minutes
+  avgTaskCompletionTime   Float?   // in minutes
+  lastActivityAt          DateTime @default(now())
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  user                    User     @relation("UserStatsRelation", fields: [userId], references: [id])
+}
+
+model ProjectAnalytics {
+  id                    Int      @id @default(autoincrement())
+  projectId             Int      @unique
+  totalTasks            Int      @default(0)
+  completedTasks        Int      @default(0)
+  pendingTasks          Int      @default(0)
+  overdueTasks          Int      @default(0)
+  inProgressTasks       Int      @default(0)
+  totalMembers          Int      @default(0)
+  totalComments         Int      @default(0)
+  totalTimeSpent        Int      @default(0) // in minutes
+  avgTaskCompletionTime Float?   // in minutes
+  productivityScore     Float?   // 0-100
+  lastUpdated           DateTime @default(now())
+  createdAt             DateTime @default(now())
+  project               Project  @relation(fields: [projectId], references: [id])
 }
 
 enum Role {

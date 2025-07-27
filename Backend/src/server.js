@@ -37,6 +37,8 @@ app.use("/api/file", require("./routes/upload.routes"));
 app.use("/api/report", require("./routes/report.routes"));
 app.use("/api/project", require("./routes/project.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
+app.use("/api/tasks", require("./routes/task.routes"));
+app.use("/api/comments", require("./routes/comment.routes"));
 app.use(errorHandler);
 
 const server = new ApolloServer({

@@ -24,10 +24,98 @@ router.use((err, req, res, next) => {
 });
 
 // Create a new project
-router.post("/create", protect, projectService.createProject);
+router.post("/create", protect, async (req, res) => {
+    try {
+        const projectData = {
+            ...req.body,
+            owner: req.user.id
+        };
+        const project = await projectService.createProject(projectData);
+        res.status(201).json(project);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
 
 // Get all projects for the logged-in user
-router.get("/all", protect, projectService.getUserProjects);
+router.get("/all", protect, async (req, res) => {
+    try {
+        const projects = await projectService.getUserProjects(req.user.id);
+        res.json(projects);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Get project by ID
+router.get("/:id", protect, async (req, res) => {
+    try {
+        const project = await projectService.getProjectById(req.params.id);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+        res.json(project);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Get project analytics
+router.get("/:id/analytics", protect, async (req, res) => {
+    try {
+        const analytics = await projectService.getProjectDashboardData(req.params.id);
+        res.json(analytics);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Update project
+router.put("/:id", protect, async (req, res) => {
+    try {
+        const project = await projectService.updateProject(req.params.id, req.body);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+        res.json(project);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Delete project
+router.delete("/:id", protect, async (req, res) => {
+    try {
+        const success = await projectService.deleteProject(req.params.id);
+        if (!success) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+        res.json({ message: "Project deleted successfully" });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Add member to project
+router.post("/:id/members", protect, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const project = await projectService.addMemberToProject(req.params.id, userId);
+        res.json(project);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Remove member from project
+router.delete("/:id/members/:userId", protect, async (req, res) => {
+    try {
+        const project = await projectService.removeMemberFromProject(req.params.id, req.params.userId);
+        res.json(project);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
 
 // Role-based access control middleware
 function checkRolesFor(action) {

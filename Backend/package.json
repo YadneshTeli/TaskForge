@@ -5,7 +5,28 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    
+    "contributor-setup": "node scripts/contributor-setup.js",
+    "quick-start": "node scripts/quick-start.js",
+    "setup:env": "node scripts/setup-env.js",
+    "setup:docker": "node scripts/setup-docker.js",
+    "setup:local": "node scripts/setup-local.js",
+    "setup:cloud": "echo 'Cloud setup: Update .env with your cloud database URLs'",
+    
+    "db:init": "node scripts/db-init.js",
+    "db:seed": "node scripts/smart-seed.js",
+    "db:reset": "npx prisma migrate reset --force && node scripts/smart-seed.js",
+    "db:test": "node scripts/test-connections.js",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate",
+    "db:studio": "npx prisma studio",
+    
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:reset": "docker-compose down -v && docker-compose up -d"
   },
   "keywords": [],
   "author": "",

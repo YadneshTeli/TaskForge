@@ -1,23 +1,37 @@
 // src/services/comment.service.js
-// Service for handling comment-related logic
+// Service for handling comment-related logic with hybrid MongoDB approach
 
 const Comment = require('../models/comment.model');
 
-module.exports = {
-    addComment: async (taskId, content, authorId, projectId = null) => {
-        const comment = new Comment({
-            content,
+class CommentService {
+    async createComment(commentData) {
+        const comment = await Comment.create(commentData);
+        return await Comment.findById(comment._id)
+            .populate('author', 'username email')
+            .lean();
+    }
+
+    async getTaskComments(taskId) {
+        return await Comment.find({ task: taskId })
+            .populate('author', 'username email')
+            .lean();
+    }
+
+    async deleteComment(commentId) {
+        const comment = await Comment.findByIdAndDelete(commentId);
+        return !!comment;
+    }
+
+    // Legacy methods for backward compatibility
+    async addComment(taskId, content, authorId, projectId = null) {
+        const commentData = {
+            text: content, // Updated field name
             author: authorId,
             task: taskId,
             project: projectId
-        });
-        return await comment.save();
-    },
-    deleteComment: async (commentId) => {
-        const result = await Comment.findByIdAndDelete(commentId);
-        return !!result;
-    },
-    getTaskComments: async (taskId) => {
-        return await Comment.find({ task: taskId }).populate('author');
+        };
+        return await this.createComment(commentData);
     }
-};
+}
+
+module.exports = new CommentService();

@@ -1,130 +1,205 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLUpload } = require('graphql-upload');
 const prisma = new PrismaClient();
-const Task = require("../models/task.model");
-const CommentService = require('../services/comment.service');
-const TaskService = require('../services/task.service');
-const NotificationService = require('../services/notification.service');
+
+// Import services for hybrid architecture
+const taskService = require('../services/task.service');
+const projectService = require('../services/project.service');
+const commentService = require('../services/comment.service');
+const notificationService = require('../services/notification.service');
+
+// Import models for direct MongoDB operations where needed
+const User = require('../models/user.model');
+const Task = require('../models/task.model');
+const Project = require('../models/project.model');
+const Comment = require('../models/comment.model');
 
 module.exports = {
     Upload: GraphQLUpload,
+    
     Query: {
+        // User queries
         me: async (_, __, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return prisma.user.findUnique({ where: { id: user.id } });
+            return await User.findById(user.id).lean();
         },
+        
+        getUserStats: async (_, { userId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await taskService.getUserTaskStats(userId || user.id);
+        },
+
+        // Project queries - MongoDB for core data
         getProjects: async (_, __, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return prisma.project.findMany({ where: { ownerId: user.id } });
+            return await projectService.getUserProjects(user.id);
         },
+        
+        getProject: async (_, { projectId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await projectService.getProjectById(projectId);
+        },
+        
+        // Project analytics - Prisma for analytics
+        getProjectAnalytics: async (_, { projectId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await projectService.getProjectDashboardData(projectId);
+        },
+
+        // Task queries - MongoDB for core data
         getTasks: async (_, { projectId }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return Task.find({ projectId });
+            return await taskService.getTasksByProject(projectId);
         },
-        getNotifications: async (_, __, { user }) => {
+        
+        // Task analytics - Prisma for analytics
+        getTaskAnalytics: async (_, { projectId }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return await NotificationService.getUserNotifications(user.id);
+            return await taskService.getTaskAnalytics(projectId);
         },
+
+        // Comment queries - MongoDB
         getTaskComments: async (_, { taskId }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return await CommentService.getTaskComments(taskId);
+            return await Comment.find({ task: taskId })
+                .populate('author', 'username email')
+                .lean();
+        },
+
+        // Notification queries - MongoDB
+        getNotifications: async (_, __, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await notificationService.getUserNotifications(user.id);
         },
     },
+    
     Mutation: {
-        createProject: async (_, { name }, { user }) => {
+        // Project mutations - MongoDB with Prisma analytics sync
+        createProject: async (_, { input }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return prisma.project.create({ data: { name, ownerId: user.id } });
+            const projectData = {
+                ...input,
+                owner: user.id
+            };
+            return await projectService.createProject(projectData);
         },
-        createTask: async (_, { projectId, title, description, dueDate }, { user }) => {
+        
+        updateProject: async (_, { projectId, input }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            // Use TaskService for consistency and support description/dueDate
-            return await TaskService.createTask(projectId, title, description, dueDate);
+            return await projectService.updateProject(projectId, input);
         },
+        
+        deleteProject: async (_, { projectId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            const success = await projectService.deleteProject(projectId);
+            return { success, message: success ? 'Project deleted' : 'Project not found' };
+        },
+        
+        addProjectMember: async (_, { projectId, userId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await projectService.addMemberToProject(projectId, userId);
+        },
+
+        // Task mutations - MongoDB with Prisma analytics sync
+        createTask: async (_, { input }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await taskService.createTask(input);
+        },
+        
+        updateTask: async (_, { taskId, input }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await taskService.updateTask(taskId, input);
+        },
+        
+        deleteTask: async (_, { taskId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            const success = await taskService.deleteTask(taskId);
+            return { success, message: success ? 'Task deleted' : 'Task not found' };
+        },
+        
+        assignTask: async (_, { taskId, userId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await taskService.assignTaskToUser(taskId, userId);
+        },
+
+        // Comment mutations - MongoDB
+        createComment: async (_, { input }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            const commentData = {
+                ...input,
+                author: user.id
+            };
+            return await Comment.create(commentData);
+        },
+        
+        deleteComment: async (_, { commentId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            const comment = await Comment.findByIdAndDelete(commentId);
+            return { success: !!comment, message: comment ? 'Comment deleted' : 'Comment not found' };
+        },
+
+        // Notification mutations
+        markNotificationAsSeen: async (_, { notificationId }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await notificationService.markNotificationAsSeen(notificationId);
+        },
+        
+        createNotification: async (_, { input }, { user }) => {
+            if (!user) throw new Error('Unauthorized');
+            return await notificationService.createNotification(input.content, input.userId || user.id);
+        },
+
+        // File upload
         uploadAttachment: async (_, { taskId, file }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            const { createReadStream, filename } = await file;
-            // TODO: Implement uploadToCloudinary or import it
-            // const url = await uploadToCloudinary(createReadStream(), filename);
-            // return Task.findByIdAndUpdate(taskId, { $push: { attachments: url } }, { new: true });
-            throw new Error('uploadToCloudinary not implemented');
+            // TODO: Implement file upload
+            throw new Error('File upload not implemented yet');
         },
-        markNotificationAsSeen: async (_, { id }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await NotificationService.markNotificationAsSeen(id);
+    },
+
+    // Type resolvers for complex fields
+    User: {
+        stats: async (user) => {
+            return await taskService.getUserTaskStats(user.id);
         },
-        addComment: async (_, { taskId, content }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await CommentService.addComment(taskId, content, user.id);
+        projects: async (user) => {
+            return await projectService.getUserProjects(user.id);
         },
-        deleteComment: async (_, { id }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await CommentService.deleteComment(id);
+        tasks: async (user) => {
+            return await Task.find({ assignedTo: user._id }).lean();
         },
-        updateProject: async (_, { id, name }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await require('../services/project.service').updateProject(id, { name });
+    },
+
+    Project: {
+        owner: async (project) => {
+            return await User.findById(project.owner).lean();
         },
-        deleteProject: async (_, { id }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await require('../services/project.service').deleteProject(id);
+        members: async (project) => {
+            return await User.find({ _id: { $in: project.members } }).lean();
         },
-        createTask: async (_, { projectId, title, description, dueDate }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.createTask(projectId, title, description, dueDate);
+        tasks: async (project) => {
+            return await Task.find({ projectId: project._id }).lean();
         },
-        updateTask: async (_, { id, title, description, dueDate, status }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            const updates = {};
-            if (title !== undefined) updates.title = title;
-            if (description !== undefined) updates.description = description;
-            if (dueDate !== undefined) updates.dueDate = dueDate;
-            if (status !== undefined) updates.status = status;
-            return await TaskService.updateTask(id, updates);
+        analytics: async (project) => {
+            return await projectService.getProjectAnalytics(project._id);
         },
-        deleteTask: async (_, { id }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.deleteTask(id);
+    },
+
+    Task: {
+        assignedTo: async (task) => {
+            if (!task.assignedTo) return null;
+            return await User.findById(task.assignedTo).lean();
         },
-        assignTaskToUser: async (_, { taskId, userId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.assignTaskToUser(taskId, userId);
+        comments: async (task) => {
+            return await Comment.find({ task: task._id })
+                .populate('author', 'username email')
+                .lean();
         },
-        unassignTaskFromUser: async (_, { taskId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.unassignTaskFromUser(taskId);
+    },
+
+    UserStats: {
+        user: async (stats) => {
+            return await User.findById(stats.userId).lean();
         },
-        updateTaskStatus: async (_, { taskId, status }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.updateTaskStatus(taskId, status);
-        },
-        updateTaskDueDate: async (_, { taskId, dueDate }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.updateTaskDueDate(taskId, dueDate);
-        },
-        updateTaskTitle: async (_, { taskId, title }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.updateTaskTitle(taskId, title);
-        },
-        updateTaskDescription: async (_, { taskId, description }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await TaskService.updateTaskDescription(taskId, description);
-        },
-        assignTaskToProject: async () => { throw new Error('Not implemented'); },
-        unassignTaskFromProject: async () => { throw new Error('Not implemented'); },
-        addTaskAttachment: async (_, { taskId, file }) => {
-            // TODO: Implement file upload and get URL
-            // const url = await uploadToCloudinary(...)
-            // return await require('../services/attachment.service').addTaskAttachment(taskId, url);
-            throw new Error('File upload not implemented');
-        },
-        removeTaskAttachment: async (_, { taskId, attachmentUrl }) => {
-            return await require('../services/attachment.service').removeTaskAttachment(taskId, attachmentUrl);
-        },
-        createNotification: async (_, { content }, { user }) => {
-            return await NotificationService.createNotification(content, user.id);
-        },
-        markNotificationAsSeen: async (_, { id }) => {
-            return await NotificationService.markNotificationAsSeen(id);
-        },
-    }
+    },
 };
