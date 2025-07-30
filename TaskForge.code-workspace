@@ -1,0 +1,271 @@
+{
+  "folders": [
+    {
+      "name": "TaskForge Frontend",
+      "path": "./Frontend/Web"
+    },
+    {
+      "name": "TaskForge Backend",
+      "path": "./Backend"
+    },
+    {
+      "name": "TaskForge Mobile",
+      "path": "./Frontend/App/taskforge"
+    }
+  ],
+  "settings": {
+    // General settings
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.env.local": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true
+    },
+    
+    // Frontend settings
+    "eslint.workingDirectories": [
+      "./Frontend/Web"
+    ],
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    
+    // Backend settings
+    "javascript.preferences.includePackageJsonAutoImports": "on",
+    
+    // Terminal settings
+    "terminal.integrated.cwd": "./Frontend/Web",
+    
+    // Editor settings
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    
+    // File associations
+    "files.associations": {
+      "*.env": "properties",
+      "*.env.local": "properties",
+      "*.env.development": "properties",
+      "*.env.production": "properties"
+    },
+    
+    // Git settings
+    "git.ignoreLimitWarning": true,
+    
+    // Extension settings
+    "emmet.includeLanguages": {
+      "javascript": "javascriptreact"
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Start Frontend Dev Server",
+        "type": "shell",
+        "command": "npm",
+        "args": ["run", "dev"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Frontend}"
+        },
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": false
+        },
+        "problemMatcher": [],
+        "isBackground": true
+      },
+      {
+        "label": "Start Backend Server",
+        "type": "shell",
+        "command": "npm",
+        "args": ["start"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Backend}"
+        },
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": false
+        },
+        "problemMatcher": [],
+        "isBackground": true
+      },
+      {
+        "label": "Start Full Stack",
+        "dependsOn": [
+          "Start Backend Server",
+          "Start Frontend Dev Server"
+        ],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      },
+      {
+        "label": "Install Frontend Dependencies",
+        "type": "shell",
+        "command": "npm",
+        "args": ["install"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Frontend}"
+        },
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": false
+        }
+      },
+      {
+        "label": "Install Backend Dependencies",
+        "type": "shell",
+        "command": "npm",
+        "args": ["install"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Backend}"
+        },
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": false
+        }
+      },
+      {
+        "label": "Install All Dependencies",
+        "dependsOn": [
+          "Install Backend Dependencies",
+          "Install Frontend Dependencies"
+        ],
+        "dependsOrder": "parallel",
+        "group": "build"
+      },
+      {
+        "label": "Test Backend Connection",
+        "type": "shell",
+        "command": "node",
+        "args": ["test-connection.js"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Frontend}"
+        },
+        "group": "test",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": true,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": true
+        }
+      },
+      {
+        "label": "Database Migration",
+        "type": "shell",
+        "command": "npx",
+        "args": ["prisma", "migrate", "dev"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Backend}"
+        },
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": true,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": false
+        }
+      },
+      {
+        "label": "Generate Prisma Client",
+        "type": "shell",
+        "command": "npx",
+        "args": ["prisma", "generate"],
+        "options": {
+          "cwd": "${workspaceFolder:TaskForge Backend}"
+        },
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared",
+          "showReuseMessage": true,
+          "clear": false
+        }
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Backend",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder:TaskForge Backend}/src/server.js",
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "console": "integratedTerminal",
+        "restart": true,
+        "runtimeExecutable": "node",
+        "skipFiles": [
+          "<node_internals>/**"
+        ]
+      },
+      {
+        "name": "Debug Frontend (Chrome)",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:5173",
+        "webRoot": "${workspaceFolder:TaskForge Frontend}/src",
+        "sourceMaps": true
+      }
+    ],
+    "compounds": [
+      {
+        "name": "Debug Full Stack",
+        "configurations": [
+          "Debug Backend",
+          "Debug Frontend (Chrome)"
+        ],
+        "stopAll": true
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-json",
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "ms-vscode.js-debug",
+      "ms-vscode.vscode-typescript-next",
+      "prisma.prisma",
+      "ms-vscode.powershell",
+      "formulahendry.auto-rename-tag",
+      "christian-kohler.path-intellisense",
+      "ms-vscode.vscode-json",
+      "usernamehw.errorlens"
+    ]
+  }
+}
