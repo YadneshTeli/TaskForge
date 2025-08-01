@@ -122,3 +122,4 @@ Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) to ensure a respectful a
 
 ## 📬 Contact
 For queries or collaborations, reach out to Yadnesh Teli at [yadneshteli.dev@gmail.com].
+
