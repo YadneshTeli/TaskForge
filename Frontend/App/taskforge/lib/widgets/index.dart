@@ -14,3 +14,6 @@ export 'quick_test_button.dart';
 export 'confirmation_dialog.dart';
 export 'user_avatar.dart';
 export 'search_bar_widget.dart';
+export 'status_badge.dart';
+export 'custom_text_field.dart';
+export 'info_card.dart';
