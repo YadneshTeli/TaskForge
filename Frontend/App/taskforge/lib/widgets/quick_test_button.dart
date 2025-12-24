@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 
 class QuickTestButton extends StatelessWidget {
-  const QuickTestButton({Key? key}) : super(key: key);
+  const QuickTestButton({super.key});
 
   Future<void> _quickTest(BuildContext context) async {
     // Show loading

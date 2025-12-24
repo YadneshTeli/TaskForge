@@ -4,14 +4,14 @@ import 'dart:convert';
 import '../utils/constants.dart';
 
 class NetworkTestScreen extends StatefulWidget {
-  const NetworkTestScreen({Key? key}) : super(key: key);
+  const NetworkTestScreen({super.key});
 
   @override
   State<NetworkTestScreen> createState() => _NetworkTestScreenState();
 }
 
 class _NetworkTestScreenState extends State<NetworkTestScreen> {
-  List<String> _testResults = [];
+  final List<String> _testResults = [];
   bool _isRunning = false;
 
   void _addResult(String message) {
