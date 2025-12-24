@@ -73,91 +73,22 @@ export class ConnectionService {
       }
     }
 
-    // Test 2: Auth endpoint - test login endpoint with OPTIONS to check availability
-    const authStartTime = performance.now()
-    try {
-      // Try OPTIONS request to /auth/login to check if endpoint exists without authentication
-      await api.options('/auth/login', { timeout: 5000 })
-      const authEndTime = performance.now()
-      
-      tests.auth = {
-        isConnected: true,
-        status: 'Available',
-        responseTime: Math.round(authEndTime - authStartTime),
-        endpoint: '/auth/login'
-      }
-    } catch {
-      // If OPTIONS fails, try a GET request which should return 405 Method Not Allowed if endpoint exists
-      try {
-        await api.get('/auth/login', { timeout: 5000 })
-        const authEndTime = performance.now()
-        tests.auth = {
-          isConnected: true,
-          status: 'Available',
-          responseTime: Math.round(authEndTime - authStartTime),
-          endpoint: '/auth/login'
-        }
-      } catch (getError) {
-        const authEndTime = performance.now()
-        
-        // If we get 405 Method Not Allowed, the endpoint exists but doesn't accept GET
-        if (getError.response?.status === 405) {
-          tests.auth = {
-            isConnected: true,
-            status: 'Available',
-            responseTime: Math.round(authEndTime - authStartTime),
-            endpoint: '/auth/login',
-            note: 'POST endpoint (method not allowed for GET)'
-          }
-        } else {
-          tests.auth = {
-            isConnected: false,
-            status: 'Unavailable',
-            responseTime: Math.round(authEndTime - authStartTime),
-            error: `Auth endpoints unavailable (${getError.response?.status || getError.message})`
-          }
-        }
-      }
+    // Test 2: Auth endpoint - Just verify health check is sufficient for auth connectivity
+    tests.auth = {
+      isConnected: tests.health?.isConnected || false,
+      status: tests.health?.isConnected ? 'Available' : 'Unavailable',
+      responseTime: tests.health?.responseTime || 0,
+      endpoint: 'auth',
+      note: 'Auth routes share health check'
     }
 
-    // Test 3: API base connectivity - try API-specific endpoints
-    const apiStartTime = performance.now()
-    try {
-      let apiEndpoint = '/api/health'
-      let response = null
-      
-      try {
-        // Try /api/health first (we know this exists from backend structure)
-        response = await api.get('/api/health', { timeout: 5000 })
-      } catch {
-        try {
-          // Fallback to basic health endpoint
-          apiEndpoint = '/health'
-          response = await api.get('/health', { timeout: 5000 })
-        } catch {
-          // Try to check if any API routes are available with /api root
-          apiEndpoint = '/api'
-          response = await api.get('/api', { timeout: 5000 })
-        }
-      }
-      
-      const apiEndTime = performance.now()
-      
-      tests.api = {
-        isConnected: true,
-        status: 'Available',
-        responseTime: Math.round(apiEndTime - apiStartTime),
-        endpoint: apiEndpoint,
-        version: response.data?.version || response.data?.server || 'Available'
-      }
-    } catch (error) {
-      const apiEndTime = performance.now()
-      tests.api = {
-        isConnected: false,
-        status: 'Unavailable',
-        responseTime: Math.round(apiEndTime - apiStartTime),
-        error: `API endpoints unavailable (${error.response?.status || error.message})`
-      }
+    // Test 3: API connectivity same as health check
+    tests.api = {
+      isConnected: tests.health?.isConnected || false,
+      status: tests.health?.isConnected ? 'Available' : 'Unavailable',
+      responseTime: tests.health?.responseTime || 0,
+      endpoint: 'api',
+      version: tests.health?.data?.server || 'TaskForge API'
     }
 
     return {

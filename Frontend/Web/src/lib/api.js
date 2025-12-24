@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+// Use process.env which works in both Vite (via define in vite.config) and Jest (via dotenv)
+const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
