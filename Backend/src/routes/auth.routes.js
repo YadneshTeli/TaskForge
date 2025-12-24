@@ -13,8 +13,7 @@ const cookieOptions = {
 };
 
 import { protect } from "../middleware/auth.middleware.js";
-import validation from '../middleware/validation.middleware.js';
-import validate from '../utils/validate.js';
+import validate from '../middleware/validate.js';
 import LogService from '../services/log.service.js';
 import { body, validationResult } from 'express-validator';
 import helmet from 'helmet';
@@ -77,11 +76,10 @@ router.post(
   "/register",
   authLimiter, // Strict rate limiting for registration
   checkRolesFor('register'),
-  validation({
-    email: [{ fn: validate.isEmail, message: "Invalid email" }],
-    password: [{ fn: validate.minLength, args: [8], message: "Password too short" }],
-    username: [{ fn: validate.isRequired, message: "Username required" }]
-  }),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('username').notEmpty().withMessage('Username is required'),
+  validate,
   protect,
   asyncHandler(async (req, res) => {
     const { email, password, username } = req.body;
