@@ -1,9 +1,9 @@
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const rateLimit = require('../middleware/rateLimit.middleware');
-const { body, validationResult } = require('express-validator');
+import helmet from 'helmet';
+import xss from 'xss-clean';
+import rateLimit from '../middleware/rateLimit.middleware.js';
+import { body, validationResult } from 'express-validator';
 
-module.exports = (app) => {
+export default (app) => {
     app.use(helmet());
     app.use(xss());
     app.use(rateLimit);

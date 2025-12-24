@@ -1,17 +1,19 @@
-const router = require("express").Router();
-const PDFDocument = require("pdfkit");
-const { protect } = require("../middleware/auth.middleware");
-const { body, validationResult } = require('express-validator');
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const rateLimit = require('../middleware/rateLimit.middleware');
-const { permissions } = require('../config/roles');
+import express from "express";
+const router = express.Router();
+import PDFDocument from "pdfkit";
+import { protect } from "../middleware/auth.middleware.js";
+import asyncHandler from '../utils/asyncHandler.js';
+import { body, validationResult } from 'express-validator';
+import helmet from 'helmet';
+import xss from 'xss-clean';
+import rateLimit from '../middleware/rateLimit.middleware.js';
+import { permissions } from '../config/roles.js';
 
 router.use(helmet());
 router.use(xss());
 router.use(rateLimit);
 
-router.get("/export/:projectId", protect, async (req, res) => {
+router.get("/export/:projectId", protect, asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const doc = new PDFDocument();
     res.setHeader("Content-Type", "application/pdf");
@@ -20,7 +22,7 @@ router.get("/export/:projectId", protect, async (req, res) => {
     doc.text("Generated at: " + new Date().toISOString());
     doc.pipe(res);
     doc.end();
-});
+}));
 
 function checkRolesFor(action) {
     return (req, res, next) => {
@@ -44,4 +46,4 @@ router.post('/report',
     }
 );
 
-module.exports = router;
+export default router;

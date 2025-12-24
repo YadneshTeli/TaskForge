@@ -1,10 +1,10 @@
 // src/services/project.service.js
 // Project service for handling project-related logic with hybrid MongoDB + Prisma approach
 
-const { PrismaClient } = require('@prisma/client');
-const Project = require('../models/project.model');
-const Task = require('../models/task.model');
-const Comment = require('../models/comment.model');
+import { PrismaClient } from '@prisma/client';
+import Project from '../models/project.model.js';
+import Task from '../models/task.model.js';
+import Comment from '../models/comment.model.js';
 const prisma = new PrismaClient();
 
 class ProjectService {
@@ -192,4 +192,4 @@ class ProjectService {
     }
 }
 
-module.exports = new ProjectService();
+export default new ProjectService();

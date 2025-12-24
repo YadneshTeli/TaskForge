@@ -1,8 +1,8 @@
 // src/services/task.service.js
 // Service for handling task-related logic with hybrid MongoDB + Prisma approach
 
-const Task = require('../models/task.model');
-const { PrismaClient } = require('@prisma/client');
+import Task from '../models/task.model.js';
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 class TaskService {
@@ -180,4 +180,4 @@ class TaskService {
     }
 }
 
-module.exports = new TaskService();
+export default new TaskService();

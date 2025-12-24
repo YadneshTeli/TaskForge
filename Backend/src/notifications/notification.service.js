@@ -1,8 +1,8 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Service for handling notifications
-module.exports = {
+export default {
     async sendNotification(userId, content) {
         // Create a notification in the database
         return await prisma.notification.create({

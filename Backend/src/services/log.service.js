@@ -1,7 +1,7 @@
 // src/services/log.service.js
-const Log = require('../models/log.model');
+import Log from '../models/log.model.js';
 
-module.exports = {
+export default {
     logAction: async (action, projectId = null) => {
         const log = new Log({ action, project: projectId });
         return await log.save();

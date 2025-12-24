@@ -1,8 +1,10 @@
-const router = require("express").Router();
-const { PrismaClient } = require('@prisma/client');
+import express from "express";
+const router = express.Router();
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-const bcrypt = require("bcryptjs");
-const { signToken, signRefreshToken, verifyRefreshToken } = require("../utils/jwt");
+import bcrypt from "bcryptjs";
+import { signToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt.js";
+import asyncHandler from '../utils/asyncHandler.js';
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -10,15 +12,34 @@ const cookieOptions = {
   maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
 };
 
-const { protect } = require("../middleware/auth.middleware");
-const validation = require('../middleware/validation.middleware');
-const validate = require('../utils/validate');
-const LogService = require('../services/log.service');
-const { body, validationResult } = require('express-validator');
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const rateLimit = require('../middleware/rateLimit.middleware');
-const { permissions } = require('../config/roles');
+import { protect } from "../middleware/auth.middleware.js";
+import validation from '../middleware/validation.middleware.js';
+import validate from '../utils/validate.js';
+import LogService from '../services/log.service.js';
+import { body, validationResult } from 'express-validator';
+import helmet from 'helmet';
+import xss from 'xss-clean';
+import rateLimit from '../middleware/rateLimit.middleware.js';
+import { permissions } from '../config/roles.js';
+import expressRateLimit from 'express-rate-limit';
+
+// Create stricter rate limiter for auth endpoints (login/register)
+const authLimiter = expressRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many authentication attempts, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Create moderate rate limiter for other auth operations
+const authOperationsLimiter = expressRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 requests per window
+  message: 'Too many requests, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.use(helmet());
 router.use(xss());
@@ -54,6 +75,7 @@ function checkRolesFor(action) {
 // Only admin and manager can register
 router.post(
   "/register",
+  authLimiter, // Strict rate limiting for registration
   checkRolesFor('register'),
   validation({
     email: [{ fn: validate.isEmail, message: "Invalid email" }],
@@ -61,16 +83,17 @@ router.post(
     username: [{ fn: validate.isRequired, message: "Username required" }]
   }),
   protect,
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     const { email, password, username } = req.body;
     const hashed = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({ data: { email, password: hashed, username } });
     const token = signToken({ id: user.id });
     res.json({ token });
-  }
+  })
 );
 
 router.post('/login',
+    authLimiter, // Strict rate limiting for login
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
     (req, res, next) => {
@@ -80,7 +103,7 @@ router.post('/login',
         }
     },
   protect,
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -91,10 +114,10 @@ router.post('/login',
     res.cookie("refreshToken", refreshToken, cookieOptions);
     await LogService.logAction('User login', null);
     res.json({ token });
-  }
+  })
 );
 
-router.post("/refresh-token", async (req, res) => {
+router.post("/refresh-token", authOperationsLimiter, asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) return res.status(401).json({ message: "No refresh token" });
   try {
@@ -104,7 +127,7 @@ router.post("/refresh-token", async (req, res) => {
   } catch (err) {
     res.status(401).json({ message: "Invalid refresh token" });
   }
-});
+}));
 
 router.post("/logout", (req, res) => {
   res.clearCookie("refreshToken", cookieOptions);
@@ -135,4 +158,4 @@ router.put('/profile',
     }
 );
 
-module.exports = router;
+export default router;

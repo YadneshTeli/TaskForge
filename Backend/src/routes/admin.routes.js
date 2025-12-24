@@ -1,6 +1,7 @@
-const router = require("express").Router();
-const { protect } = require("../middleware/auth.middleware");
-const role = require("../middleware/role.middleware");
+import express from "express";
+const router = express.Router();
+import { protect } from "../middleware/auth.middleware.js";
+import role from "../middleware/role.middleware.js";
 
 // Example admin-only route
 router.post("/admin-action", protect, role(["admin"]), (req, res) => {
@@ -8,4 +9,4 @@ router.post("/admin-action", protect, role(["admin"]), (req, res) => {
     res.json({ message: "Admin action performed." });
 });
 
-module.exports = router;
+export default router;

@@ -1,7 +1,7 @@
 // src/services/comment.service.js
 // Service for handling comment-related logic with hybrid MongoDB approach
 
-const Comment = require('../models/comment.model');
+import Comment from '../models/comment.model.js';
 
 class CommentService {
     async createComment(commentData) {
@@ -34,4 +34,4 @@ class CommentService {
     }
 }
 
-module.exports = new CommentService();
+export default new CommentService();

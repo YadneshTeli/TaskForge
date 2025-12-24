@@ -1,5 +1,5 @@
 // src/models/comment.model.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const CommentSchema = new mongoose.Schema({
     content: { type: String, required: true },
@@ -9,4 +9,4 @@ const CommentSchema = new mongoose.Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' }
 });
 
-module.exports = mongoose.model('Comment', CommentSchema);
+export default mongoose.model('Comment', CommentSchema);

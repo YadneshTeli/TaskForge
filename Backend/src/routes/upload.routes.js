@@ -1,12 +1,14 @@
-const router = require("express").Router();
-const multer = require("multer");
-const cloudinary = require("../config/cloudinary");
-const { protect } = require("../middleware/auth.middleware");
-const { body, validationResult } = require('express-validator');
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const rateLimit = require('../middleware/rateLimit.middleware');
-const { permissions } = require('../config/roles');
+import express from "express";
+const router = express.Router();
+import multer from "multer";
+import cloudinary from "../config/cloudinary.js";
+import { protect } from "../middleware/auth.middleware.js";
+import asyncHandler from '../utils/asyncHandler.js';
+import { body, validationResult } from 'express-validator';
+import helmet from 'helmet';
+import xss from 'xss-clean';
+import rateLimit from '../middleware/rateLimit.middleware.js';
+import { permissions } from '../config/roles.js';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -31,21 +33,17 @@ router.post("/upload", protect, checkRolesFor('upload'), upload.single("file"),
         // Add more file validation if needed
         return true;
     }),
-    async (req, res) => {
+    asyncHandler(async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
         const file = req.file;
-        try {
-            const result = await cloudinary.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
-                if (error) return res.status(500).json({ error });
-                res.json({ url: result.secure_url });
-            }).end(file.buffer);
-        } catch (err) {
-            res.status(500).json({ message: "Upload failed", error: err });
-        }
-    }
+        const result = await cloudinary.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
+            if (error) return res.status(500).json({ error });
+            res.json({ url: result.secure_url });
+        }).end(file.buffer);
+    })
 );
 
-module.exports = router;
+export default router;

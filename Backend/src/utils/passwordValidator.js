@@ -79,7 +79,7 @@ function calculatePasswordStrength(password) {
     return 'very-strong';
 }
 
-module.exports = { 
+export { 
     validatePasswordStrength,
     calculatePasswordStrength
 };

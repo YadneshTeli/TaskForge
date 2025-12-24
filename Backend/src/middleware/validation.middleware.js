@@ -1,7 +1,7 @@
 // src/middleware/validation.middleware.js
-const validate = require('../utils/validate');
+import validate from '../utils/validate.js';
 
-module.exports = (rules) => (req, res, next) => {
+export default (rules) => (req, res, next) => {
     for (const field in rules) {
         const validators = rules[field];
         for (const validator of validators) {

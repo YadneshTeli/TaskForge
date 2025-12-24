@@ -50,4 +50,4 @@ function validateEnv() {
     console.log('✅ Environment variables validated successfully');
 }
 
-module.exports = validateEnv;
+export default validateEnv;

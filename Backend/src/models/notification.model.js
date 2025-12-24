@@ -1,5 +1,5 @@
 // src/models/notification.model.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const NotificationSchema = new mongoose.Schema({
     content: { type: String, required: true },
@@ -8,4 +8,4 @@ const NotificationSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 });
 
-module.exports = mongoose.model('Notification', NotificationSchema);
+export default mongoose.model('Notification', NotificationSchema);

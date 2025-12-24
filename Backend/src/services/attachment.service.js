@@ -1,9 +1,9 @@
 // src/services/attachment.service.js
 // Service for handling task attachment logic
 
-const Task = require('../models/task.model');
+import Task from '../models/task.model.js';
 
-module.exports = {
+export default {
     addTaskAttachment: async (taskId, url) => {
         return await Task.findByIdAndUpdate(taskId, { $push: { attachments: url } }, { new: true });
     },

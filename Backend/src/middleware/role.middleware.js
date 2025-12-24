@@ -1,5 +1,5 @@
 // src/middleware/role.middleware.js
-module.exports = (roles = []) => {
+export default (roles = []) => {
     if (typeof roles === 'string') roles = [roles];
     return (req, res, next) => {
         if (!req.user || (roles.length && !roles.includes(req.user.role))) {

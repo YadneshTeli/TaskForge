@@ -1,21 +1,24 @@
-const { PrismaClient } = require('@prisma/client');
-const { GraphQLUpload } = require('graphql-upload');
+import { PrismaClient } from '@prisma/client';
+import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
+
 const prisma = new PrismaClient();
 
 // Import services for hybrid architecture
-const taskService = require('../services/task.service');
-const projectService = require('../services/project.service');
-const commentService = require('../services/comment.service');
-const notificationService = require('../services/notification.service');
+import taskService from '../services/task.service.js';
+import projectService from '../services/project.service.js';
+import commentService from '../services/comment.service.js';
+import notificationService from '../services/notification.service.js';
 
 // Import models for direct MongoDB operations where needed
-const User = require('../models/user.model');
-const Task = require('../models/task.model');
-const Project = require('../models/project.model');
-const Comment = require('../models/comment.model');
+import User from '../models/user.model.js';
+import Task from '../models/task.model.js';
+import Project from '../models/project.model.js';
+import Comment from '../models/comment.model.js';
 
-module.exports = {
-    Upload: GraphQLUpload,
+// Export async function that returns resolvers
+async function getResolvers() {
+    return {
+        Upload: GraphQLUpload,
     
     Query: {
         // User queries
@@ -202,4 +205,7 @@ module.exports = {
             return await User.findById(stats.userId).lean();
         },
     },
-};
+    };
+}
+
+export default getResolvers;

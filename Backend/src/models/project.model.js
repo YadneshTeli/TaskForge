@@ -1,5 +1,5 @@
 // src/models/project.model.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const ProjectSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -16,4 +16,4 @@ const ProjectSchema = new mongoose.Schema({
     attachments: [String]
 });
 
-module.exports = mongoose.model('Project', ProjectSchema);
+export default mongoose.model('Project', ProjectSchema);

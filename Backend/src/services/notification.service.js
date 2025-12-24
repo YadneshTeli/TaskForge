@@ -1,9 +1,9 @@
 // src/services/notification.service.js
 // Service for handling notification-related logic
 
-const Notification = require('../models/notification.model');
+import Notification from '../models/notification.model.js';
 
-module.exports = {
+export default {
     createNotification: async (content, userId) => {
         const notification = new Notification({
             content,

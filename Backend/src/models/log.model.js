@@ -1,5 +1,5 @@
 // src/models/log.model.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const LogSchema = new mongoose.Schema({
     action: { type: String, required: true },
@@ -7,4 +7,4 @@ const LogSchema = new mongoose.Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true }
 });
 
-module.exports = mongoose.model('Log', LogSchema);
+export default mongoose.model('Log', LogSchema);

@@ -1,8 +1,8 @@
 // src/services/user.service.js
-const User = require('../models/user.model');
-const bcrypt = require('bcryptjs');
+import User from '../models/user.model.js';
+import bcrypt from 'bcryptjs';
 
-module.exports = {
+export default {
     updateProfile: async (id, updates) => {
         return await User.findByIdAndUpdate(id, updates, { new: true });
     },

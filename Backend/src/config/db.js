@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 /**
  * Connect to MongoDB with retry logic
@@ -57,4 +57,4 @@ const connectMongo = async (retries = 5) => {
     return false;
 };
 
-module.exports = connectMongo;
+export default connectMongo;

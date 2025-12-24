@@ -1,9 +1,9 @@
-const fs = require('fs');
-const path = require('path');
-const PDFDocument = require('pdfkit');
-const Project = require('../models/project.model');
-const Task = require('../models/task.model');
-const Comment = require('../models/comment.model');
+import fs from 'fs';
+import path from 'path';
+import PDFDocument from 'pdfkit';
+import Project from '../models/project.model.js';
+import Task from '../models/task.model.js';
+import Comment from '../models/comment.model.js';
 
 function formatTasksTable(tasks) {
     let table = 'Title           | Status    | Due Date\n';
@@ -33,7 +33,7 @@ function formatCommentsTable(comments) {
 }
 
 // Service for handling report generation
-module.exports = {
+export default {
     async generateReport({ projectId, format = 'pdf' }) {
         // Fetch project and related data from DB
         const project = await Project.findById(projectId)
@@ -46,7 +46,7 @@ module.exports = {
 
         if (format === 'pdf') {
             // Generate PDF report
-            const reportPath = path.join(__dirname, '../../reports', `project_${projectId}_report.pdf`);
+            const reportPath = path.join(import.meta.dirname, '../../reports', `project_${projectId}_report.pdf`);
             const doc = new PDFDocument();
             doc.pipe(fs.createWriteStream(reportPath));
 
@@ -88,7 +88,7 @@ module.exports = {
             project.comments.forEach(comment => {
                 csv += `${comment.text},${comment.createdAt.toLocaleDateString()}\n`;
             });
-            const reportPath = path.join(__dirname, '../../reports', `project_${projectId}_report.csv`);
+            const reportPath = path.join(import.meta.dirname, '../../reports', `project_${projectId}_report.csv`);
             await fs.promises.writeFile(reportPath, csv);
             return reportPath;
         } else {

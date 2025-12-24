@@ -1,49 +1,39 @@
-const router = require("express").Router();
-const { protect } = require("../middleware/auth.middleware");
-const commentService = require("../services/comment.service");
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const rateLimit = require('../middleware/rateLimit.middleware');
+import express from "express";
+const router = express.Router();
+import { protect } from "../middleware/auth.middleware.js";
+import commentService from "../services/comment.service.js";
+import asyncHandler from '../utils/asyncHandler.js';
+import helmet from 'helmet';
+import xss from 'xss-clean';
+import rateLimit from '../middleware/rateLimit.middleware.js';
 
 router.use(helmet());
 router.use(xss());
 router.use(rateLimit);
 
 // Create comment
-router.post("/", protect, async (req, res) => {
-  try {
-    const commentData = {
-      ...req.body,
-      author: req.user.id
-    };
-    const comment = await commentService.createComment(commentData);
-    res.status(201).json(comment);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
+router.post("/", protect, asyncHandler(async (req, res) => {
+  const commentData = {
+    ...req.body,
+    author: req.user.id
+  };
+  const comment = await commentService.createComment(commentData);
+  res.status(201).json(comment);
+}));
 
 // Get comments by task
-router.get("/task/:taskId", protect, async (req, res) => {
-  try {
-    const comments = await commentService.getTaskComments(req.params.taskId);
-    res.json(comments);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
+router.get("/task/:taskId", protect, asyncHandler(async (req, res) => {
+  const comments = await commentService.getTaskComments(req.params.taskId);
+  res.json(comments);
+}));
 
 // Delete comment
-router.delete("/:id", protect, async (req, res) => {
-  try {
-    const success = await commentService.deleteComment(req.params.id);
-    if (!success) {
-      return res.status(404).json({ message: "Comment not found" });
-    }
-    res.json({ message: "Comment deleted" });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+router.delete("/:id", protect, asyncHandler(async (req, res) => {
+  const success = await commentService.deleteComment(req.params.id);
+  if (!success) {
+    return res.status(404).json({ message: "Comment not found" });
   }
-});
+  res.json({ message: "Comment deleted" });
+}));
 
-module.exports = router;
+export default router;

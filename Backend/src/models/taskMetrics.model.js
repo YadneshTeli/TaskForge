@@ -1,5 +1,5 @@
 // src/models/taskMetrics.model.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const TaskMetricsSchema = new mongoose.Schema({
     commentsCount: { type: Number, default: 0 },
@@ -13,4 +13,4 @@ const TaskMetricsSchema = new mongoose.Schema({
     customPrioritiesCount: { type: Number, default: 0 }
 });
 
-module.exports = mongoose.model('TaskMetrics', TaskMetricsSchema);
+export default mongoose.model('TaskMetrics', TaskMetricsSchema);

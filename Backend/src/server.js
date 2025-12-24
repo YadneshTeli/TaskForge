@@ -1,31 +1,40 @@
-require("dotenv").config();
+import 'dotenv/config';
 
 // Validate environment variables before proceeding
-const validateEnv = require("./config/validateEnv");
+import validateEnv from './config/validateEnv.js';
 validateEnv();
 
-const express = require("express");
-const cors = require("cors");
-const { ApolloServer } = require("apollo-server-express");
-const { graphqlUploadExpress } = require("graphql-upload");
-const connectMongo = require("./config/db");
-const typeDefs = require("./schema");
-const resolvers = require("./resolvers");
-const authMiddleware = require("./middleware/auth.middleware");
-const rateLimit = require("./middleware/rateLimit.middleware");
-const errorHandler = require("./middleware/errorHandler");
-const securityMiddleware = require('./middleware/security.middleware');
+import express from 'express';
+import cors from 'cors';
+import { ApolloServer } from 'apollo-server-express';
+import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
+import connectMongo from './config/db.js';
+import typeDefs from './schema/index.js';
+import getResolvers from './resolvers/index.js';
+import * as authMiddleware from './middleware/auth.middleware.js';
+import rateLimit from './middleware/rateLimit.middleware.js';
+import errorHandler from './middleware/errorHandler.js';
+import securityMiddleware from './middleware/security.middleware.js';
+import authRoutes from './routes/auth.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
+import reportRoutes from './routes/report.routes.js';
+import projectRoutes from './routes/project.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import taskRoutes from './routes/task.routes.js';
+import commentRoutes from './routes/comment.routes.js';
+import mongoose from 'mongoose';
+import { PrismaClient } from '@prisma/client';
 
 const app = express();
 
-const allowedOrigins = [
-  "https://your-frontend-domain.com", 
-  "http://localhost:3000",
-  "http://10.72.125.97:3000",      // Your laptop's WiFi IP for web
-  "http://10.72.125.97:4000",      // Direct backend access
-  "http://192.168.56.1:3000",      // Ethernet adapter (if needed)
-  "http://192.168.137.1:3000",     // Hotspot adapter (if needed)
-];
+// Get allowed origins from environment variable
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:4000"
+    ];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -53,8 +62,8 @@ app.use(authMiddleware.decodeToken);
 app.use(rateLimit);
 securityMiddleware(app);
 
-app.use("/api/auth", require("./routes/auth.routes"));
-app.use("/api/file", require("./routes/upload.routes"));
+app.use("/api/auth", authRoutes);
+app.use("/api/file", uploadRoutes);
 
 // Enhanced health check endpoint with database connectivity checks
 app.get('/api/health', async (req, res) => {
@@ -70,7 +79,7 @@ app.get('/api/health', async (req, res) => {
 
   // Check MongoDB connection
   try {
-    const mongoState = require('mongoose').connection.readyState;
+    const mongoState = mongoose.connection.readyState;
     // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
     health.checks.mongodb = {
       status: mongoState === 1 ? 'connected' : 'disconnected',
@@ -86,7 +95,6 @@ app.get('/api/health', async (req, res) => {
 
   // Check PostgreSQL/Prisma connection
   try {
-    const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
     await prisma.$queryRaw`SELECT 1`;
     health.checks.postgresql = {
@@ -118,20 +126,24 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-app.use("/api/report", require("./routes/report.routes"));
-app.use("/api/project", require("./routes/project.routes"));
-app.use("/api/admin", require("./routes/admin.routes"));
-app.use("/api/tasks", require("./routes/task.routes"));
-app.use("/api/comments", require("./routes/comment.routes"));
+app.use("/api/report", reportRoutes);
+app.use("/api/project", projectRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/comments", commentRoutes);
 app.use(errorHandler);
 
-const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    context: ({ req }) => ({ user: req.user })
-});
-
 async function start() {
+    // Load resolvers with GraphQLUpload
+    const resolvers = await getResolvers();
+    
+    // Create ApolloServer with loaded resolvers
+    const server = new ApolloServer({
+        typeDefs,
+        resolvers,
+        context: ({ req }) => ({ user: req.user })
+    });
+    
     await connectMongo();
     await server.start();
     server.applyMiddleware({ app });

@@ -1,14 +1,15 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const multer = require('multer');
+import multer from 'multer';
 const upload = multer({ storage: multer.memoryStorage() });
-const projectService = require('../services/project.service');
-const { protect } = require("../middleware/auth.middleware");
-const { body, validationResult } = require('express-validator');
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const rateLimit = require('../middleware/rateLimit.middleware');
-const { permissions } = require('../config/roles');
+import projectService from '../services/project.service.js';
+import { protect } from "../middleware/auth.middleware.js";
+import asyncHandler from '../utils/asyncHandler.js';
+import { body, validationResult } from 'express-validator';
+import helmet from 'helmet';
+import xss from 'xss-clean';
+import rateLimit from '../middleware/rateLimit.middleware.js';
+import { permissions } from '../config/roles.js';
 
 router.use(helmet());
 router.use(xss());
@@ -24,98 +25,66 @@ router.use((err, req, res, next) => {
 });
 
 // Create a new project
-router.post("/create", protect, async (req, res) => {
-    try {
-        const projectData = {
-            ...req.body,
-            owner: req.user.id
-        };
-        const project = await projectService.createProject(projectData);
-        res.status(201).json(project);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
+router.post("/create", protect, asyncHandler(async (req, res) => {
+    const projectData = {
+        ...req.body,
+        owner: req.user.id
+    };
+    const project = await projectService.createProject(projectData);
+    res.status(201).json(project);
+}));
 
 // Get all projects for the logged-in user
-router.get("/all", protect, async (req, res) => {
-    try {
-        const projects = await projectService.getUserProjects(req.user.id);
-        res.json(projects);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
+router.get("/all", protect, asyncHandler(async (req, res) => {
+    const projects = await projectService.getUserProjects(req.user.id);
+    res.json(projects);
+}));
 
 // Get project by ID
-router.get("/:id", protect, async (req, res) => {
-    try {
-        const project = await projectService.getProjectById(req.params.id);
-        if (!project) {
-            return res.status(404).json({ message: "Project not found" });
-        }
-        res.json(project);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+router.get("/:id", protect, asyncHandler(async (req, res) => {
+    const project = await projectService.getProjectById(req.params.id);
+    if (!project) {
+        return res.status(404).json({ message: "Project not found" });
     }
-});
+    res.json(project);
+}));
 
 // Get project analytics
-router.get("/:id/analytics", protect, async (req, res) => {
-    try {
-        const analytics = await projectService.getProjectDashboardData(req.params.id);
-        res.json(analytics);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
+router.get("/:id/analytics", protect, asyncHandler(async (req, res) => {
+    const analytics = await projectService.getProjectDashboardData(req.params.id);
+    res.json(analytics);
+}));
 
 // Update project
-router.put("/:id", protect, async (req, res) => {
-    try {
-        const project = await projectService.updateProject(req.params.id, req.body);
-        if (!project) {
-            return res.status(404).json({ message: "Project not found" });
-        }
-        res.json(project);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+router.put("/:id", protect, asyncHandler(async (req, res) => {
+    const project = await projectService.updateProject(req.params.id, req.body);
+    if (!project) {
+        return res.status(404).json({ message: "Project not found" });
     }
-});
+    res.json(project);
+}));
 
 // Delete project
-router.delete("/:id", protect, async (req, res) => {
-    try {
-        const success = await projectService.deleteProject(req.params.id);
-        if (!success) {
-            return res.status(404).json({ message: "Project not found" });
-        }
-        res.json({ message: "Project deleted successfully" });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+router.delete("/:id", protect, asyncHandler(async (req, res) => {
+    const success = await projectService.deleteProject(req.params.id);
+    if (!success) {
+        return res.status(404).json({ message: "Project not found" });
     }
-});
+    res.json({ message: "Project deleted successfully" });
+}));
 
 // Add member to project
-router.post("/:id/members", protect, async (req, res) => {
-    try {
-        const { userId } = req.body;
-        const project = await projectService.addMemberToProject(req.params.id, userId);
-        res.json(project);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
+router.post("/:id/members", protect, asyncHandler(async (req, res) => {
+    const { userId } = req.body;
+    const project = await projectService.addMemberToProject(req.params.id, userId);
+    res.json(project);
+}));
 
 // Remove member from project
-router.delete("/:id/members/:userId", protect, async (req, res) => {
-    try {
-        const project = await projectService.removeMemberFromProject(req.params.id, req.params.userId);
-        res.json(project);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
+router.delete("/:id/members/:userId", protect, asyncHandler(async (req, res) => {
+    const project = await projectService.removeMemberFromProject(req.params.id, req.params.userId);
+    res.json(project);
+}));
 
 // Role-based access control middleware
 function checkRolesFor(action) {
@@ -188,4 +157,4 @@ router.get('/dashboard',
     }
 );
 
-module.exports = router;
+export default router;

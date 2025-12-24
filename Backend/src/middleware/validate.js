@@ -3,7 +3,7 @@
  * Standardizes validation error responses across the application
  */
 
-const { validationResult } = require('express-validator');
+import { validationResult } from 'express-validator';
 
 /**
  * Middleware to check validation results from express-validator
@@ -39,4 +39,4 @@ const validate = (req, res, next) => {
     next();
 };
 
-module.exports = validate;
+export default validate;
