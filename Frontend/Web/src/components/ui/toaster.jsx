@@ -15,4 +15,15 @@ const Toaster = () => {
   return null // We'll implement this later with a proper toast system
 }
 
-export { Toast, Toaster }
+// Simple toast hook for basic notifications
+const useToast = () => {
+  return {
+    toast: ({ title, description, variant = 'default' }) => {
+      console.log('Toast:', { title, description, variant })
+      // This is a placeholder - in production you'd use a proper toast library
+    }
+  }
+}
+
+export { Toast, Toaster, useToast }
+
