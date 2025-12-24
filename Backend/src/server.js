@@ -1,4 +1,9 @@
 require("dotenv").config();
+
+// Validate environment variables before proceeding
+const validateEnv = require("./config/validateEnv");
+validateEnv();
+
 const express = require("express");
 const cors = require("cors");
 const { ApolloServer } = require("apollo-server-express");
@@ -40,7 +45,9 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json());
+// Body parser with size limits to prevent DoS attacks
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(graphqlUploadExpress());
 app.use(authMiddleware.decodeToken);
 app.use(rateLimit);
@@ -49,15 +56,59 @@ securityMiddleware(app);
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/file", require("./routes/upload.routes"));
 
-// Health check endpoint for network testing
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
+// Enhanced health check endpoint with database connectivity checks
+app.get('/api/health', async (req, res) => {
+  const health = {
     status: 'OK',
     timestamp: new Date().toISOString(),
     server: 'TaskForge Backend',
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    checks: {}
+  };
+
+  // Check MongoDB connection
+  try {
+    const mongoState = require('mongoose').connection.readyState;
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    health.checks.mongodb = {
+      status: mongoState === 1 ? 'connected' : 'disconnected',
+      state: mongoState,
+      stateText: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoState]
+    };
+  } catch (error) {
+    health.checks.mongodb = {
+      status: 'error',
+      message: error.message
+    };
+  }
+
+  // Check PostgreSQL/Prisma connection
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.$queryRaw`SELECT 1`;
+    health.checks.postgresql = {
+      status: 'connected'
+    };
+    await prisma.$disconnect();
+  } catch (error) {
+    health.checks.postgresql = {
+      status: 'error',
+      message: error.message
+    };
+  }
+
+  // Determine overall health status
+  const allHealthy = Object.values(health.checks)
+    .every(check => check.status === 'connected');
+  
+  health.status = allHealthy ? 'OK' : 'DEGRADED';
+  
+  // Return appropriate status code
+  const statusCode = allHealthy ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // Simple endpoint to test connectivity

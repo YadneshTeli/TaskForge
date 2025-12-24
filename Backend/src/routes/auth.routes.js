@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const bcrypt = require("bcryptjs");
 const { signToken, signRefreshToken, verifyRefreshToken } = require("../utils/jwt");
 const cookieOptions = {
