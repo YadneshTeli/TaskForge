@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 import bcrypt from "bcryptjs";
 import { signToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt.js";
 import asyncHandler from '../utils/asyncHandler.js';
+import emailService from '../utils/email.js';
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -154,6 +155,166 @@ router.put('/profile',
     (req, res, next) => {
         // ...existing update profile logic...
     }
+);
+
+// ==================== NEW AUTHENTICATION ENDPOINTS ====================
+
+// Forgot Password - Send reset email
+router.post('/forgot-password',
+  authOperationsLimiter,
+  body('email').isEmail().withMessage('Valid email is required'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    
+    const user = await prisma.user.findUnique({ where: { email } });
+    
+    // Don't reveal if user exists for security
+    if (!user) {
+      return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+    }
+
+    // Generate reset token (valid for 1 hour)
+    const resetToken = emailService.generateToken();
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetExpires
+      }
+    });
+
+    // Send reset email
+    await emailService.sendPasswordResetEmail(user.email, resetToken, user.username);
+
+    res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+  })
+);
+
+// Reset Password - Verify token and update password
+router.post('/reset-password',
+  authOperationsLimiter,
+  body('token').notEmpty().withMessage('Token is required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: {
+          gt: new Date() // Token not expired
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      }
+    });
+
+    await LogService.logAction('Password reset', null, user.id);
+
+    res.json({ message: 'Password has been reset successfully' });
+  })
+);
+
+// Verify Email - Verify email with token
+router.post('/verify-email',
+  authOperationsLimiter,
+  body('token').notEmpty().withMessage('Token is required'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const { token } = req.body;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        verificationToken: token,
+        verificationExpires: {
+          gt: new Date() // Token not expired
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
+    }
+
+    // Mark email as verified
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        verificationToken: null,
+        verificationExpires: null
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        emailVerified: true
+      }
+    });
+
+    await LogService.logAction('Email verified', null, user.id);
+
+    res.json({ 
+      message: 'Email verified successfully',
+      user: updatedUser
+    });
+  })
+);
+
+// Resend Verification Email
+router.post('/resend-verification',
+  authOperationsLimiter,
+  body('email').isEmail().withMessage('Valid email is required'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    // Generate new verification token (valid for 24 hours)
+    const verificationToken = emailService.generateToken();
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken,
+        verificationExpires
+      }
+    });
+
+    // Send verification email
+    await emailService.sendVerificationEmail(user.email, verificationToken, user.username);
+
+    res.json({ message: 'Verification email sent' });
+  })
 );
 
 export default router;
