@@ -9,28 +9,48 @@ datasource db {
 
 // ============= Core User Model =============
 model User {
-  id              Int              @id @default(autoincrement())
-  email           String           @unique
-  password        String
-  username        String
-  fullName        String?
-  profilePicture  String?
-  bio             String?
-  role            Role             @default(USER)
-  isActive        Boolean          @default(true)
-  isOnline        Boolean          @default(false)
-  lastSeen        DateTime?
-  lastActiveAt    DateTime?
-  lastLogin       DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                    Int              @id @default(autoincrement())
+  email                 String           @unique
+  password              String
+  username              String
+  fullName              String?
+  profilePicture        String?
+  bio                   String?
+  role                  Role             @default(USER)
+  isActive              Boolean          @default(true)
+  isOnline              Boolean          @default(false)
+  lastSeen              DateTime?
+  lastActiveAt          DateTime?
+  lastLogin             DateTime?
   
-  projectMembers  ProjectMember[]
-  notifications   Notification[]
-  userStats       UserStats?
+  // Email verification
+  emailVerified         Boolean          @default(false)
+  verificationToken     String?          @unique
+  verificationExpires   DateTime?
+  
+  // Password reset
+  resetPasswordToken    String?          @unique
+  resetPasswordExpires  DateTime?
+  
+  // Onboarding
+  onboardingCompleted   Boolean          @default(false)
+  onboardingStep        Int              @default(0)
+  
+  // User settings/preferences
+  settings              Json?            // { theme, language, notifications, etc. }
+  
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  
+  projectMembers        ProjectMember[]
+  notifications         Notification[]
+  userStats             UserStats?
+  sentInvitations       Invitation[]     @relation("InvitedBy")
   
   @@index([email])
   @@index([isActive])
+  @@index([verificationToken])
+  @@index([resetPasswordToken])
 }
 
 // ============= Permissions & Relations =============
@@ -112,4 +132,25 @@ model TaskMetrics {
 enum Role {
   ADMIN
   USER
+}
+
+// ============= Invitations =============
+model Invitation {
+  id          String   @id @default(uuid())
+  email       String
+  role        String   @default("member")
+  projectId   String?  // MongoDB Project._id (optional)
+  invitedById Int
+  status      String   @default("pending") // pending, accepted, expired, cancelled
+  token       String   @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  invitedBy   User     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  
+  @@index([email])
+  @@index([token])
+  @@index([status])
 }

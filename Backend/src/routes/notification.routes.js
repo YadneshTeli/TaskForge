@@ -3,6 +3,9 @@ const router = express.Router();
 import { protect } from "../middleware/auth.middleware.js";
 import asyncHandler from '../utils/asyncHandler.js';
 import notificationService from '../services/notification.service.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Get user's notifications
 router.get('/',
@@ -58,4 +61,67 @@ router.put('/mark-all-seen',
     })
 );
 
+// ==================== NEW NOTIFICATION ENDPOINTS ====================
+
+// Get unread notification count
+router.get('/unread-count',
+    protect,
+    asyncHandler(async (req, res) => {
+        const count = await prisma.notification.count({
+            where: {
+                userId: req.user.id,
+                seen: false
+            }
+        });
+
+        res.json({ count });
+    })
+);
+
+// Mark all notifications as read (PostgreSQL-based)
+router.put('/mark-all-read',
+    protect,
+    asyncHandler(async (req, res) => {
+        await prisma.notification.updateMany({
+            where: {
+                userId: req.user.id,
+                seen: false
+            },
+            data: {
+                seen: true
+            }
+        });
+
+        res.json({ message: 'All notifications marked as read' });
+    })
+);
+
+// Delete notification
+router.delete('/:id',
+    protect,
+    asyncHandler(async (req, res) => {
+        const notificationId = parseInt(req.params.id);
+
+        // Check if notification belongs to user
+        const notification = await prisma.notification.findUnique({
+            where: { id: notificationId }
+        });
+
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        if (notification.userId !== req.user.id) {
+            return res.status(403).json({ message: 'You do not have permission to delete this notification' });
+        }
+
+        await prisma.notification.delete({
+            where: { id: notificationId }
+        });
+
+        res.json({ message: 'Notification deleted successfully' });
+    })
+);
+
 export default router;
+
