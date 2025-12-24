@@ -49,7 +49,7 @@ class _FileUploadWidgetState extends State<FileUploadWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking file: $e'),
+            content: Text('Failed to select file: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -168,7 +168,7 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking image: $e'),
+            content: Text('Failed to select image: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

@@ -106,9 +106,9 @@ class UserAvatarWithName extends StatelessWidget {
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
-              if (user.email != null)
+              if (user.email.isNotEmpty)
                 Text(
-                  user.email!,
+                  user.email,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.grey[600],
                       ),
