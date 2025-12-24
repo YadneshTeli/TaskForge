@@ -1,17 +1,19 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 
 const LoginPage = () => {
+  const location = useLocation()
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -21,6 +23,15 @@ const LoginPage = () => {
   })
 
   const { login, register } = useAuth()
+
+  useEffect(() => {
+    // Check if redirected from email verification
+    if (location.state?.emailVerified) {
+      setSuccessMessage('Email verified successfully! You can now log in.')
+      // Clear the state to avoid showing the message on refresh
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -72,6 +83,13 @@ const LoginPage = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {successMessage && (
+                <div className="flex items-center space-x-2 text-green-600 bg-green-50 p-3 rounded-lg">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="text-sm">{successMessage}</span>
+                </div>
+              )}
+              
               {error && (
                 <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg">
                   <AlertCircle className="h-4 w-4" />

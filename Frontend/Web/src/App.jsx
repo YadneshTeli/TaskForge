@@ -4,13 +4,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/contexts/AuthContext.jsx'
 import { useAuth } from '@/hooks/useAuth'
+import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
+import SignupPage from '@/pages/SignupPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
+import VerifyEmailPage from '@/pages/VerifyEmailPage'
+import OnboardingPage from '@/pages/OnboardingPage'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import Dashboard from '@/pages/Dashboard'
 import ProjectsPage from '@/pages/ProjectsPage'
 import TasksPage from '@/pages/TasksPage'
 import ProfilePage from '@/pages/ProfilePage'
 import ReportsPage from '@/pages/ReportsPage'
+import SettingsPage from '@/pages/SettingsPage'
+import NotificationsPage from '@/pages/NotificationsPage'
 import DeveloperToolsPage from '@/pages/DeveloperToolsPage'
 import GlobalConnectionStatus from '@/components/GlobalConnectionStatus'
 import './App.css'
@@ -67,6 +75,9 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50">
             <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              
               <Route 
                 path="/login" 
                 element={
@@ -75,6 +86,53 @@ function App() {
                   </PublicRoute>
                 } 
               />
+
+              <Route 
+                path="/signup" 
+                element={
+                  <PublicRoute>
+                    <SignupPage />
+                  </PublicRoute>
+                } 
+              />
+
+              <Route 
+                path="/forgot-password" 
+                element={
+                  <PublicRoute>
+                    <ForgotPasswordPage />
+                  </PublicRoute>
+                } 
+              />
+
+              <Route 
+                path="/reset-password" 
+                element={
+                  <PublicRoute>
+                    <ResetPasswordPage />
+                  </PublicRoute>
+                } 
+              />
+
+              <Route 
+                path="/verify-email" 
+                element={
+                  <PublicRoute>
+                    <VerifyEmailPage />
+                  </PublicRoute>
+                } 
+              />
+
+              {/* Protected Routes */}
+              <Route 
+                path="/onboarding" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingPage />
+                  </ProtectedRoute>
+                } 
+              />
+
               <Route 
                 path="/*" 
                 element={
@@ -86,11 +144,13 @@ function App() {
                         <Route path="/tasks" element={<TasksPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/notifications" element={<NotificationsPage />} />
                         {/* Developer tools - only in development */}
                         {import.meta.env.MODE === 'development' && (
                           <Route path="/dev-tools" element={<DeveloperToolsPage />} />
                         )}
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
                       </Routes>
                     </DashboardLayout>
                   </ProtectedRoute>
