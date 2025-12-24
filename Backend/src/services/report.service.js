@@ -1,9 +1,21 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import PDFDocument from 'pdfkit';
 import Project from '../models/project.model.js';
 import Task from '../models/task.model.js';
 import Comment from '../models/comment.model.js';
+
+// Get current directory in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Ensure reports directory exists
+const reportsDir = path.join(__dirname, '../../reports');
+if (!fs.existsSync(reportsDir)) {
+    fs.mkdirSync(reportsDir, { recursive: true });
+}
 
 function formatTasksTable(tasks) {
     let table = 'Title           | Status    | Due Date\n';
