@@ -6,17 +6,19 @@
 ![Stars](https://img.shields.io/github/stars/YadneshTeli/TaskForge?style=social)
 
 ## Overview
-TaskForge is a full-stack, cross-platform project and task management solution. It provides robust features for team collaboration, project tracking, custom workflows, and reporting. The backend is built with Node.js, Express, and Prisma ORM, while the frontend includes both a Flutter app and a React web client.
+TaskForge is a full-stack, cross-platform project and task management solution with a modern **MongoDB-first hybrid architecture**. It provides robust features for team collaboration, project tracking, custom workflows, and reporting. The backend uses MongoDB Atlas for operational data and Supabase PostgreSQL for identity and analytics, while the frontend includes both a Flutter app and a React web client.
 
 ## Features
-- User authentication and role management
-- Project and task creation, assignment, and tracking
-- Custom fields, priorities, labels, and reminders
-- Comments, notifications, and activity logs
-- Reporting and analytics
+- User authentication and role-based access control
+- Project and task creation with flexible custom fields
+- Task assignment, tracking, and watchers
+- Threaded comments with reactions
+- Real-time notifications
+- Activity logs and analytics
 - File uploads (Cloudinary integration)
-- RESTful API endpoints
-- Extensible architecture for custom workflows
+- RESTful API and GraphQL support
+- Hybrid database architecture for optimal performance
+- Comprehensive health monitoring
 
 ## Project Structure
 ```
@@ -37,10 +39,13 @@ TaskForge/
 ```
 
 ## Backend
-- **Node.js + Express**: Handles API requests and business logic.
-- **Prisma ORM**: Manages database schema and queries.
-- **RESTful APIs**: Exposes endpoints for all core features.
-- **Configurable Middleware**: Security, validation, rate limiting, etc.
+- **Node.js + Express**: Handles API requests and business logic
+- **MongoDB Atlas**: Primary database for operational data (projects, tasks, comments)
+- **Supabase PostgreSQL**: Identity, permissions, and analytics
+- **Prisma ORM**: Type-safe database access for PostgreSQL
+- **Mongoose**: Flexible document modeling for MongoDB
+- **RESTful APIs & GraphQL**: Multiple API interfaces
+- **Configurable Middleware**: Security, validation, rate limiting, authentication
 
 ## Frontend
 - **Flutter App**: Cross-platform mobile and desktop client.
@@ -51,7 +56,8 @@ TaskForge/
 ### **Prerequisites**
 - **Node.js ≥ 18**
 - **npm ≥ 8** or **yarn**
-- **PostgreSQL** or Supabase account
+- **MongoDB Atlas account** (or local MongoDB)
+- **Supabase account** (or local PostgreSQL)
 
 ### Backend
 1. Navigate to the `Backend` folder:
@@ -62,15 +68,39 @@ TaskForge/
    ```sh
    npm install
    ```
-3. Set up environment variables (see `src/config/` for examples).
+3. Set up environment variables:
+   ```sh
+   # Create .env file with:
+   # MongoDB Atlas connection
+   MONGODB_URI=mongodb+srv://...
+   
+   # Supabase PostgreSQL connection
+   DATABASE_URL=postgresql://...
+   
+   # JWT and other secrets
+   JWT_SECRET=your_secret_key
+   CLOUDINARY_URL=your_cloudinary_url
+   ```
 4. Run database migrations:
    ```sh
    npx prisma migrate dev
+   npx prisma generate
    ```
 5. Start the server:
    ```sh
    npm start
    ```
+6. Verify health:
+   ```sh
+   curl http://localhost:3000/api/health
+   ```
+
+### Architecture
+TaskForge uses a **MongoDB-first hybrid architecture**:
+- **90% of data** in MongoDB Atlas (projects, tasks, comments)
+- **10% of data** in PostgreSQL (users, permissions, analytics)
+- **Zero redundancy** - each piece of data lives in one database
+- See [Backend/ARCHITECTURE.md](Backend/ARCHITECTURE.md) for details
 
 ### Frontend (Flutter)
 1. Navigate to `Frontend/App/taskforge`:
