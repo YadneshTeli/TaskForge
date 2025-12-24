@@ -1,5 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
+import { 
+    AuthenticationError, 
+    NotFoundError, 
+    ValidationError,
+    AuthorizationError 
+} from '../utils/errors.js';
 
 const prisma = new PrismaClient();
 
@@ -9,11 +15,9 @@ import projectService from '../services/project.service.js';
 import commentService from '../services/comment.service.js';
 import notificationService from '../services/notification.service.js';
 
-// Import models for direct MongoDB operations where needed
-import User from '../models/user.model.js';
+// Import MongoDB models for direct operations where needed
 import Task from '../models/task.model.js';
 import Project from '../models/project.model.js';
-import Comment from '../models/comment.model.js';
 
 // Export async function that returns resolvers
 async function getResolvers() {
@@ -23,50 +27,58 @@ async function getResolvers() {
     Query: {
         // User queries
         me: async (_, __, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await User.findById(user.id).lean();
+            if (!user) throw new AuthenticationError();
+            const foundUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                include: {
+                    projectMembers: true,
+                    userStats: true
+                }
+            });
+            if (!foundUser) throw new NotFoundError('User', user.id);
+            return foundUser;
         },
         
         getUserStats: async (_, { userId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
+            if (!user) throw new AuthenticationError();
             return await taskService.getUserTaskStats(userId || user.id);
         },
 
         // Project queries - MongoDB for core data
         getProjects: async (_, __, { user }) => {
-            if (!user) throw new Error('Unauthorized');
+            if (!user) throw new AuthenticationError();
             return await projectService.getUserProjects(user.id);
         },
         
         getProject: async (_, { projectId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
-            return await projectService.getProjectById(projectId);
+            if (!user) throw new AuthenticationError();
+            const project = await projectService.getProjectById(projectId);
+            if (!project) throw new NotFoundError('Project', projectId);
+            return project;
         },
         
         // Project analytics - Prisma for analytics
         getProjectAnalytics: async (_, { projectId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
+            if (!user) throw new AuthenticationError();
             return await projectService.getProjectDashboardData(projectId);
         },
 
         // Task queries - MongoDB for core data
         getTasks: async (_, { projectId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
+            if (!user) throw new AuthenticationError();
             return await taskService.getTasksByProject(projectId);
         },
         
         // Task analytics - Prisma for analytics
         getTaskAnalytics: async (_, { projectId }, { user }) => {
-            if (!user) throw new Error('Unauthorized');
+            if (!user) throw new AuthenticationError();
             return await taskService.getTaskAnalytics(projectId);
         },
 
         // Comment queries - MongoDB
         getTaskComments: async (_, { taskId }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            return await Comment.find({ task: taskId })
-                .populate('author', 'username email')
-                .lean();
+            return await commentService.getTaskComments(taskId);
         },
 
         // Notification queries - MongoDB
@@ -132,13 +144,13 @@ async function getResolvers() {
                 ...input,
                 author: user.id
             };
-            return await Comment.create(commentData);
+            return await commentService.createComment(commentData);
         },
         
         deleteComment: async (_, { commentId }, { user }) => {
             if (!user) throw new Error('Unauthorized');
-            const comment = await Comment.findByIdAndDelete(commentId);
-            return { success: !!comment, message: comment ? 'Comment deleted' : 'Comment not found' };
+            const deleted = await commentService.deleteComment(commentId);
+            return { success: deleted, message: deleted ? 'Comment deleted' : 'Comment not found' };
         },
 
         // Notification mutations
@@ -191,18 +203,16 @@ async function getResolvers() {
     Task: {
         assignedTo: async (task) => {
             if (!task.assignedTo) return null;
-            return await User.findById(task.assignedTo).lean();
+            return await prisma.user.findUnique({ where: { id: task.assignedTo } });
         },
         comments: async (task) => {
-            return await Comment.find({ task: task._id })
-                .populate('author', 'username email')
-                .lean();
+            return await commentService.getTaskComments(task._id.toString());
         },
     },
 
     UserStats: {
         user: async (stats) => {
-            return await User.findById(stats.userId).lean();
+            return await prisma.user.findUnique({ where: { id: stats.userId } });
         },
     },
     };

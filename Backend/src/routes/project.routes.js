@@ -3,6 +3,9 @@ const router = express.Router();
 import multer from 'multer';
 const upload = multer({ storage: multer.memoryStorage() });
 import projectService from '../services/project.service.js';
+import uploadService from '../services/upload.service.js';
+import reportService from '../services/report.service.js';
+import notificationService from '../services/notification.service.js';
 import { protect } from "../middleware/auth.middleware.js";
 import asyncHandler from '../utils/asyncHandler.js';
 import { body, validationResult } from 'express-validator';
@@ -100,31 +103,58 @@ function checkRolesFor(action) {
 router.post('/project/:id/upload',
     checkRolesFor('upload'),
     upload.single('file'),
-    body('file').custom((value, { req }) => {
-        if (!req.file) throw new Error('File is required');
-        return true;
-    }),
-    (req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+    asyncHandler(async (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ message: 'File is required' });
         }
-        projectService.uploadProjectFile(req, res);
-    }
+        
+        const projectId = req.params.id;
+        
+        // Verify project exists
+        const project = await projectService.getProjectById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Upload file using upload service
+        const fileUrl = await uploadService.uploadFile(req.file);
+        
+        res.status(200).json({ 
+            message: 'File uploaded successfully',
+            url: fileUrl,
+            filename: req.file.originalname
+        });
+    })
 );
 
 // Generate project report (admin or manager)
 router.post('/project/:id/report',
     checkRolesFor('report'),
-    body('projectId').notEmpty().withMessage('Project ID is required'),
-    (req, res, next) => {
+    body('format').optional().isIn(['pdf', 'csv']).withMessage('Format must be pdf or csv'),
+    asyncHandler(async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        req.body.projectId = req.params.id;
-        projectService.generateProjectReport(req, res);
-    }
+        
+        const projectId = req.params.id;
+        const format = req.body.format || 'pdf';
+        
+        // Verify project exists
+        const project = await projectService.getProjectById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Generate report
+        const reportPath = await reportService.generateReport({ projectId, format });
+        
+        res.status(200).json({ 
+            message: 'Report generated successfully',
+            path: reportPath,
+            format
+        });
+    })
 );
 
 // Notify project user (admin, manager, or user)
@@ -132,13 +162,29 @@ router.post('/project/:id/notify',
     checkRolesFor('notify'),
     body('userId').notEmpty().withMessage('User ID is required'),
     body('content').notEmpty().withMessage('Content is required'),
-    (req, res, next) => {
+    asyncHandler(async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        projectService.notifyProjectUser(req, res);
-    }
+        
+        const projectId = req.params.id;
+        const { userId, content } = req.body;
+        
+        // Verify project exists
+        const project = await projectService.getProjectById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        
+        // Create notification
+        const notification = await notificationService.createNotification(content, userId);
+        
+        res.status(201).json({ 
+            message: 'Notification sent successfully',
+            notification
+        });
+    })
 );
 
 // Only user and manager can add comments
