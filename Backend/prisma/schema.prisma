@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  //output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,99 +7,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============= Core User Model =============
 model User {
-  id            Int               @id @default(autoincrement())
-  email         String            @unique
-  password      String
-  username      String
-  role          Role              @default(USER)
-  projects      Project[]
-  notifications Notification[]    @relation("UserToNotifications")
-  taskMetrics   TaskMetrics[]     @relation("TaskAssignee")
-  userStats     UserStats?        @relation("UserStatsRelation")
-  createdAt     DateTime          @default(now())
+  id              Int              @id @default(autoincrement())
+  email           String           @unique
+  password        String
+  username        String
+  fullName        String?
+  profilePicture  String?
+  bio             String?
+  role            Role             @default(USER)
+  isActive        Boolean          @default(true)
+  isOnline        Boolean          @default(false)
+  lastSeen        DateTime?
+  lastActiveAt    DateTime?
+  lastLogin       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  projectMembers  ProjectMember[]
+  notifications   Notification[]
+  userStats       UserStats?
+  
+  @@index([email])
+  @@index([isActive])
 }
 
+// ============= Permissions & Relations =============
+model ProjectMember {
+  id          Int      @id @default(autoincrement())
+  projectId   String   // MongoDB Project._id (stored as string)
+  userId      Int
+  role        String   @default("member") // owner, admin, member, viewer
+  permissions Json?    // { canEdit: true, canDelete: false, canInvite: true }
+  joinedAt    DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+// ============= Notifications =============
 model Notification {
   id        Int      @id @default(autoincrement())
-  content   String
-  seen      Boolean  @default(false)
   userId    Int
-  user      User     @relation("UserToNotifications", fields: [userId], references: [id])
+  type      String   // task_assigned, comment_added, project_invite, etc.
+  content   String
+  metadata  Json?    // { projectId, taskId, etc. }
+  seen      Boolean  @default(false)
   createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, seen])
+  @@index([createdAt])
 }
 
-model Project {
-  id          Int                @id @default(autoincrement())
-  name        String
-  ownerId     Int
-  owner       User               @relation(fields: [ownerId], references: [id])
-  createdAt   DateTime           @default(now())
-  logs        Log[]
-  taskMetrics TaskMetrics[]
-  analytics   ProjectAnalytics?
-}
-
-model Log {
-  id        Int      @id @default(autoincrement())
-  action    String
-  projectId Int
-  project   Project  @relation(fields: [projectId], references: [id])
-  createdAt DateTime @default(now())
-}
-
-model TaskMetrics {
-  id          Int      @id @default(autoincrement())
-  taskId      String   // MongoDB ObjectId as string
-  projectId   Int
-  title       String
-  status      String
-  timeSpent   Int      @default(0) // in minutes
-  priority    String?
-  assignedTo  Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  completedAt DateTime?
-  dueDate     DateTime?
-  project     Project  @relation(fields: [projectId], references: [id])
-  assignee    User?    @relation("TaskAssignee", fields: [assignedTo], references: [id])
-}
-
+// ============= Analytics Models (Synced from MongoDB) =============
 model UserStats {
-  id                      Int      @id @default(autoincrement())
-  userId                  Int      @unique
-  totalTasksCreated       Int      @default(0)
-  totalTasksCompleted     Int      @default(0)
-  totalTasksPending       Int      @default(0)
-  totalTasksOverdue       Int      @default(0)
-  totalTasksInProgress    Int      @default(0)
-  totalProjectsOwned      Int      @default(0)
-  totalProjectsJoined     Int      @default(0)
-  totalCommentsPosted     Int      @default(0)
-  totalTimeSpent          Int      @default(0) // in minutes
-  avgTaskCompletionTime   Float?   // in minutes
-  lastActivityAt          DateTime @default(now())
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  user                    User     @relation("UserStatsRelation", fields: [userId], references: [id])
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @unique
+  totalProjectsOwned  Int      @default(0)
+  totalProjectsJoined Int      @default(0)
+  totalTasksCreated   Int      @default(0)
+  totalTasksCompleted Int      @default(0)
+  totalTasksInProgress Int     @default(0)
+  totalComments       Int      @default(0)
+  lastActivityAt      DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ProjectAnalytics {
-  id                    Int      @id @default(autoincrement())
-  projectId             Int      @unique
-  totalTasks            Int      @default(0)
-  completedTasks        Int      @default(0)
-  pendingTasks          Int      @default(0)
-  overdueTasks          Int      @default(0)
-  inProgressTasks       Int      @default(0)
-  totalMembers          Int      @default(0)
-  totalComments         Int      @default(0)
-  totalTimeSpent        Int      @default(0) // in minutes
-  avgTaskCompletionTime Float?   // in minutes
-  productivityScore     Float?   // 0-100
-  lastUpdated           DateTime @default(now())
-  createdAt             DateTime @default(now())
-  project               Project  @relation(fields: [projectId], references: [id])
+  id              Int      @id @default(autoincrement())
+  projectId       String   @unique  // MongoDB Project._id
+  totalTasks      Int      @default(0)
+  completedTasks  Int      @default(0)
+  inProgressTasks Int      @default(0)
+  totalMembers    Int      @default(0)
+  totalComments   Int      @default(0)
+  lastUpdated     DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
+
+model TaskMetrics {
+  id          Int       @id @default(autoincrement())
+  taskId      String    @unique  // MongoDB Task._id
+  projectId   String    // MongoDB Project._id
+  userId      Int?      // PostgreSQL User.id (assignee)
+  timeSpent   Int       @default(0)  // in minutes
+  status      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  
+  @@index([projectId])
+  @@index([userId])
 }
 
 enum Role {

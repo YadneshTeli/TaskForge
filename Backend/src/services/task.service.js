@@ -3,43 +3,66 @@
 
 import Task from '../models/task.model.js';
 import { PrismaClient } from '@prisma/client';
+import { NotFoundError, DatabaseError, ValidationError } from '../utils/errors.js';
+
 const prisma = new PrismaClient();
 
 class TaskService {
     // MongoDB operations for core task functionality
     async createTask(taskData) {
-        const task = await Task.create(taskData);
-        
-        // Sync to Prisma for analytics
-        await this.syncTaskToPrisma(task);
-        await this.updateProjectAnalytics(task.projectId);
-        
-        return task;
+        try {
+            const task = await Task.create(taskData);
+            
+            // Sync to Prisma for analytics
+            await this.syncTaskToPrisma(task);
+            await this.updateProjectAnalytics(task.projectId);
+            
+            return task;
+        } catch (error) {
+            if (error.name === 'ValidationError') {
+                throw new ValidationError('Task validation failed', Object.values(error.errors));
+            }
+            throw new DatabaseError('Failed to create task', error);
+        }
     }
 
     async getTasksByProject(projectId) {
-        return await Task.find({ projectId })
-            .populate('assignedTo', 'username email')
-            .populate('comments.userId', 'username email')
-            .lean();
+        try {
+            return await Task.find({ projectId }).lean();
+        } catch (error) {
+            throw new DatabaseError('Failed to retrieve tasks', error);
+        }
     }
 
     async updateTask(taskId, updateData) {
-        const task = await Task.findByIdAndUpdate(taskId, updateData, { new: true })
-            .populate('assignedTo', 'username email');
-        
-        if (task) {
+        try {
+            const task = await Task.findByIdAndUpdate(taskId, updateData, { new: true });
+            
+            if (!task) {
+                throw new NotFoundError('Task', taskId);
+            }
+            
             // Update analytics
             await this.syncTaskToPrisma(task);
-            await this.updateProjectAnalytics(task.projectId);
+            
+            return task;
+        } catch (error) {
+            if (error instanceof NotFoundError) throw error;
+            if (error.name === 'ValidationError') {
+                throw new ValidationError('Task validation failed', Object.values(error.errors));
+            }
+            throw new DatabaseError('Failed to update task', error);
         }
-        
-        return task;
     }
 
     async deleteTask(taskId) {
-        const task = await Task.findById(taskId);
-        if (task) {
+        try {
+            const task = await Task.findById(taskId);
+            
+            if (!task) {
+                throw new NotFoundError('Task', taskId);
+            }
+            
             await Task.findByIdAndDelete(taskId);
             
             // Remove from analytics
@@ -47,111 +70,101 @@ class TaskService {
                 where: { taskId: taskId.toString() }
             });
             
-            await this.updateProjectAnalytics(task.projectId);
             return true;
+        } catch (error) {
+            if (error instanceof NotFoundError) throw error;
+            throw new DatabaseError('Failed to delete task', error);
         }
-        return false;
     }
 
     // Prisma operations for analytics
     async getTaskAnalytics(projectId) {
-        return await prisma.taskMetrics.findMany({
-            where: { projectId: parseInt(projectId) },
-            include: {
-                assignee: {
-                    select: { id: true, username: true, email: true }
-                }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        try {
+            return await prisma.taskMetrics.findMany({
+                where: { projectId: projectId.toString() },
+                orderBy: { createdAt: 'desc' }
+            });
+        } catch (error) {
+            throw new DatabaseError('Failed to retrieve task analytics', error);
+        }
     }
 
     async getUserTaskStats(userId) {
-        return await prisma.userStats.findUnique({
-            where: { userId: parseInt(userId) },
-            include: {
-                user: {
-                    select: { id: true, username: true, email: true }
-                }
-            }
-        });
+        try {
+            return await prisma.userStats.findUnique({
+                where: { userId: userId }
+            });
+        } catch (error) {
+            throw new DatabaseError('Failed to retrieve user task stats', error);
+        }
     }
 
     async getProjectAnalytics(projectId) {
-        return await prisma.projectAnalytics.findUnique({
-            where: { projectId: parseInt(projectId) }
-        });
+        try {
+            return await prisma.projectAnalytics.findUnique({
+                where: { projectId: projectId.toString() }
+            });
+        } catch (error) {
+            throw new DatabaseError('Failed to retrieve project analytics', error);
+        }
     }
 
     // Helper methods for syncing data
     async syncTaskToPrisma(task) {
-        const taskData = {
-            taskId: task._id.toString(),
-            projectId: parseInt(task.projectId) || 1, // Default project if not set
-            title: task.title,
-            status: task.status,
-            priority: task.priority || 'medium',
-            assignedTo: task.assignedTo ? parseInt(task.assignedTo) : null,
-            dueDate: task.dueDate,
-            completedAt: task.status === 'done' ? new Date() : null,
-            updatedAt: new Date()
-        };
+        try {
+            const taskData = {
+                taskId: task._id.toString(),
+                projectId: task.projectId.toString(),
+                userId: task.assignedTo || null,
+                status: task.status,
+                timeSpent: 0, // Can be calculated from logs if needed
+                completedAt: task.status === 'done' ? new Date() : null,
+                updatedAt: new Date(),
+                createdAt: task.createdAt || new Date()
+            };
 
-        await prisma.taskMetrics.upsert({
-            where: { taskId: task._id.toString() },
-            update: taskData,
-            create: taskData
-        });
+            await prisma.taskMetrics.upsert({
+                where: { taskId: task._id.toString() },
+                update: taskData,
+                create: taskData
+            });
+        } catch (error) {
+            console.error('Failed to sync task to Prisma:', error);
+            // Don't throw here to avoid breaking the main operation
+        }
     }
 
     async updateProjectAnalytics(projectId) {
-        const tasks = await Task.find({ projectId });
-        const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(t => t.status === 'done').length;
-        const pendingTasks = tasks.filter(t => t.status === 'todo').length;
-        const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
-        const overdueTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length;
-
-        const analyticsData = {
-            projectId: parseInt(projectId) || 1,
-            totalTasks,
-            completedTasks,
-            pendingTasks,
-            inProgressTasks,
-            overdueTasks,
-            lastUpdated: new Date()
-        };
-
-        await prisma.projectAnalytics.upsert({
-            where: { projectId: parseInt(projectId) || 1 },
-            update: analyticsData,
-            create: analyticsData
-        });
+        // This is now handled by the Project model's post-save hook
+        // Keep empty for backward compatibility
     }
 
     async updateUserStats(userId) {
-        const tasks = await Task.find({ assignedTo: userId });
-        const completedTasks = tasks.filter(t => t.status === 'done').length;
-        const pendingTasks = tasks.filter(t => t.status === 'todo').length;
-        const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
-        const overdueTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done').length;
+        try {
+            const tasks = await Task.find({ assignedTo: userId });
+            const completedTasks = tasks.filter(t => t.status === 'done').length;
+            const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
 
-        const statsData = {
-            userId: parseInt(userId),
-            totalTasksCreated: tasks.length,
-            totalTasksCompleted: completedTasks,
-            totalTasksPending: pendingTasks,
-            totalTasksInProgress: inProgressTasks,
-            totalTasksOverdue: overdueTasks,
-            lastActivityAt: new Date(),
-            updatedAt: new Date()
-        };
+            const statsData = {
+                totalTasksCreated: tasks.length,
+                totalTasksCompleted: completedTasks,
+                totalTasksInProgress: inProgressTasks,
+                lastActivityAt: new Date(),
+                updatedAt: new Date()
+            };
 
-        await prisma.userStats.upsert({
-            where: { userId: parseInt(userId) },
-            update: statsData,
-            create: statsData
-        });
+            await prisma.userStats.upsert({
+                where: { userId: userId },
+                update: statsData,
+                create: {
+                    userId: userId,
+                    ...statsData
+                }
+            });
+        } catch (error) {
+            console.error('Failed to update user stats:', error);
+            // Don't throw here to avoid breaking the main operation
+        }
     }
 
     // Legacy methods for backward compatibility
