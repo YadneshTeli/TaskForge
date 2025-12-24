@@ -19,6 +19,7 @@ import ProfilePage from '@/pages/ProfilePage'
 import ReportsPage from '@/pages/ReportsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import NotificationsPage from '@/pages/NotificationsPage'
+import TeamPage from './pages/TeamPage'
 import DeveloperToolsPage from '@/pages/DeveloperToolsPage'
 import GlobalConnectionStatus from '@/components/GlobalConnectionStatus'
 import './App.css'
@@ -144,6 +145,7 @@ function App() {
                         <Route path="/tasks" element={<TasksPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/team" element={<TeamPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/notifications" element={<NotificationsPage />} />
                         {/* Developer tools - only in development */}
