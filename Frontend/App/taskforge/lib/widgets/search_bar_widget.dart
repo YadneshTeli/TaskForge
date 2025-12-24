@@ -32,6 +32,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   }
 
   void _onSearchChanged(String query) {
+    setState(() {}); // Rebuild to show/hide clear button
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(widget.debounceTime, () {
       widget.onSearch(query);

@@ -16,14 +16,10 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case TaskStatus.todo:
         return Colors.grey;
-      case TaskStatus.inProgress:
+      case TaskStatus.in_progress:
         return Colors.blue;
       case TaskStatus.done:
         return Colors.green;
-      case TaskStatus.blocked:
-        return Colors.red;
-      case TaskStatus.review:
-        return Colors.orange;
     }
   }
 
@@ -31,14 +27,10 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case TaskStatus.todo:
         return Icons.circle_outlined;
-      case TaskStatus.inProgress:
+      case TaskStatus.in_progress:
         return Icons.refresh;
       case TaskStatus.done:
         return Icons.check_circle;
-      case TaskStatus.blocked:
-        return Icons.block;
-      case TaskStatus.review:
-        return Icons.rate_review;
     }
   }
 
@@ -46,14 +38,10 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case TaskStatus.todo:
         return 'To Do';
-      case TaskStatus.inProgress:
+      case TaskStatus.in_progress:
         return 'In Progress';
       case TaskStatus.done:
         return 'Done';
-      case TaskStatus.blocked:
-        return 'Blocked';
-      case TaskStatus.review:
-        return 'Review';
     }
   }
 
@@ -107,8 +95,6 @@ class PriorityBadge extends StatelessWidget {
         return Colors.orange;
       case TaskPriority.high:
         return Colors.red;
-      case TaskPriority.critical:
-        return Colors.purple;
     }
   }
 
@@ -119,8 +105,6 @@ class PriorityBadge extends StatelessWidget {
       case TaskPriority.medium:
         return Icons.drag_handle;
       case TaskPriority.high:
-        return Icons.arrow_upward;
-      case TaskPriority.critical:
         return Icons.priority_high;
     }
   }
@@ -133,8 +117,6 @@ class PriorityBadge extends StatelessWidget {
         return 'Medium';
       case TaskPriority.high:
         return 'High';
-      case TaskPriority.critical:
-        return 'Critical';
     }
   }
 

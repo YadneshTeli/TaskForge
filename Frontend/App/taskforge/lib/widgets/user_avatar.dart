@@ -20,9 +20,12 @@ class UserAvatar extends StatelessWidget {
 
   String _getInitials() {
     if (user != null) {
-      final firstName = user!.firstName ?? '';
-      final lastName = user!.lastName ?? '';
-      return '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}'.toUpperCase();
+      final fullName = user!.fullName ?? user!.username;
+      final parts = fullName.split(' ');
+      if (parts.length >= 2) {
+        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      }
+      return fullName.isNotEmpty ? fullName[0].toUpperCase() : 'U';
     } else if (name != null && name!.isNotEmpty) {
       final parts = name!.split(' ');
       if (parts.length >= 2) {
@@ -86,6 +89,8 @@ class UserAvatarWithName extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayName = user.fullName ?? user.username;
+    
     return Row(
       children: [
         UserAvatar(user: user, radius: avatarRadius),
@@ -95,7 +100,7 @@ class UserAvatarWithName extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim(),
+                displayName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),

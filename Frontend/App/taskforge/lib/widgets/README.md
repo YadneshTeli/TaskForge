@@ -249,10 +249,8 @@ StatusBadge(
 
 **Status Colors**:
 - `todo` - Grey
-- `inProgress` - Blue
+- `in_progress` - Blue
 - `done` - Green
-- `blocked` - Red
-- `review` - Orange
 
 #### `PriorityBadge`
 Badge displaying task priority with color coding.
@@ -269,7 +267,6 @@ PriorityBadge(
 - `low` - Green
 - `medium` - Orange
 - `high` - Red
-- `critical` - Purple
 
 ---
 
