@@ -46,10 +46,11 @@ class _FileUploadWidgetState extends State<FileUploadWidget> {
         widget.onFileSelected(file);
       }
     } catch (e) {
+      debugPrint('File selection failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to select file: ${e.toString()}'),
+          const SnackBar(
+            content: Text('Failed to select file. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
