@@ -124,8 +124,8 @@ class _ProjectCreateDialogState extends State<ProjectCreateDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create project: ${e.toString()}'),
+          const SnackBar(
+            content: Text('Failed to create project. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
