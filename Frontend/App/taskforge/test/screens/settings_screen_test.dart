@@ -1,36 +1,10 @@
 // test/screens/settings_screen_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:taskforge/screens/settings_screen.dart';
-import 'package:taskforge/services/user_settings_service.dart';
-
-// Mock UserSettingsService
-class MockUserSettingsService extends Mock {
-  static Future<Map<String, dynamic>> getSettings() async {
-    throw UnimplementedError();
-  }
-
-  static Future<Map<String, dynamic>> updateSettings(
-      Map<String, dynamic> settings) async {
-    throw UnimplementedError();
-  }
-
-  static Future<Map<String, dynamic>> getNotificationPreferences() async {
-    throw UnimplementedError();
-  }
-
-  static Future<Map<String, dynamic>> updateNotificationPreferences(
-      Map<String, dynamic> preferences) async {
-    throw UnimplementedError();
-  }
-}
 
 void main() {
   group('SettingsScreen', () {
-    setUp(() {
-      // Reset any state before each test
-    });
 
     testWidgets('displays loading state initially', (WidgetTester tester) async {
       // Build the widget
