@@ -5,6 +5,7 @@ import '../blocs/task/task_bloc.dart';
 import '../blocs/task/task_event.dart';
 import '../blocs/task/task_state.dart';
 import '../models/task.dart';
+import '../widgets/index.dart';
 
 class TasksScreen extends StatefulWidget {
   final String? projectId;
@@ -50,24 +51,17 @@ class _TasksScreenState extends State<TasksScreen> {
         body: BlocBuilder<TaskBloc, TaskState>(
           builder: (context, state) {
             if (state is TaskLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingWidget(
+                message: 'Loading tasks...',
+                showMessage: true,
+              );
             }
             
             if (state is TaskError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text('Error: ${state.message}'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context.read<TaskBloc>().add(LoadTasks()),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+              return ErrorDisplayWidget(
+                message: 'Failed to load tasks',
+                details: state.message,
+                onRetry: () => context.read<TaskBloc>().add(LoadTasks()),
               );
             }
             
@@ -77,17 +71,14 @@ class _TasksScreenState extends State<TasksScreen> {
                   : state.tasks;
               
               if (tasks.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.task_alt, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No tasks found'),
-                      SizedBox(height: 8),
-                      Text('Tap + to create your first task'),
-                    ],
-                  ),
+                return EmptyStateWidget(
+                  icon: Icons.task_alt,
+                  title: 'No Tasks Yet',
+                  message: widget.projectId != null
+                      ? 'Create your first task for this project'
+                      : 'Create your first task to get started',
+                  actionLabel: 'Create Task',
+                  onActionPressed: _showCreateTaskDialog,
                 );
               }
               

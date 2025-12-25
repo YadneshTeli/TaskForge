@@ -5,6 +5,7 @@ import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_event.dart';
 import '../blocs/auth/auth_state.dart';
 import '../models/user.dart';
+import '../widgets/index.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,7 +25,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is AuthLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingWidget(
+              message: 'Loading profile...',
+              showMessage: true,
+            );
           }
           
           if (state is AuthAuthenticated) {
@@ -38,17 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Center(
                     child: Column(
                       children: [
-                        CircleAvatar(
+                        UserAvatar(
+                          user: user,
                           radius: 60,
-                          backgroundColor: Theme.of(context).primaryColor,
-                          child: Text(
-                            user.username.isNotEmpty ? user.username[0].toUpperCase() : 'U',
-                            style: const TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(
