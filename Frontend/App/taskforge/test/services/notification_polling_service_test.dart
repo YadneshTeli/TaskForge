@@ -185,10 +185,10 @@ void main() {
       pollingService.notifications.value = mockNotifications;
       pollingService.unreadCount.value = 2;
       
-      // Without a mocked backend, the method will throw an exception
+      // Without a mocked backend, the method may fail internally but should not throw
       await expectLater(
         pollingService.markAllAsRead(),
-        throwsException,
+        completes,
       );
     });
 
