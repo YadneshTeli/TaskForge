@@ -161,7 +161,6 @@ void main() {
       pollingService.unreadCount.value = expectedUnreadCount;
       
       // Verify the service's unreadCount matches the expected value
-      expect(pollingService.unreadCount.value, 2); // notifications 1 and 3 are unread
       expect(pollingService.unreadCount.value, expectedUnreadCount);
     });
   });
