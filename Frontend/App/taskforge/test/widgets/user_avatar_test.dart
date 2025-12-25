@@ -186,8 +186,8 @@ void main() {
         ),
       );
 
-      // Should display 'U' fallback for user
-      expect(find.text('U'), findsOneWidget);
+      // Should display '?' fallback when initials cannot be determined
+      expect(find.text('?'), findsOneWidget);
     });
 
     testWidgets('handles user with spaces in fullName',
