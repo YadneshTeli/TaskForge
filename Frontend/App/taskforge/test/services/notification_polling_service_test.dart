@@ -139,7 +139,7 @@ void main() {
       // The method should complete successfully, returning mock data
       expect(pollingService.notifications.value, isA<List<NotificationModel>>());
       // After refresh with mock data, we should have some notifications
-      expect(pollingService.notifications.value.length, greaterThanOrEqualTo(0));
+      expect(pollingService.notifications.value.length, greaterThan(0));
     });
 
     test('notifications ValueNotifier can be updated', () {
