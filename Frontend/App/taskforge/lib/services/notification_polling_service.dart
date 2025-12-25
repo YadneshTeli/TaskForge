@@ -24,7 +24,7 @@ class NotificationPollingService {
   void startPolling() {
     if (_pollingTimer != null && _pollingTimer!.isActive) {
       if (kDebugMode) {
-        print('Notification polling already active');
+        debugPrint('Notification polling already active');
       }
       return;
     }
@@ -40,7 +40,7 @@ class NotificationPollingService {
     });
 
     if (kDebugMode) {
-      print('Started notification polling (every ${_pollingInterval.inSeconds}s)');
+      debugPrint('Started notification polling (every ${_pollingInterval.inSeconds}s)');
     }
   }
 
@@ -51,7 +51,7 @@ class NotificationPollingService {
     isPolling.value = false;
 
     if (kDebugMode) {
-      print('Stopped notification polling');
+      debugPrint('Stopped notification polling');
     }
   }
 
@@ -66,11 +66,11 @@ class NotificationPollingService {
       unreadCount.value = unread;
 
       if (kDebugMode) {
-        print('Fetched ${fetchedNotifications.length} notifications, $unread unread');
+        debugPrint('Fetched ${fetchedNotifications.length} notifications, $unread unread');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error fetching notifications: $e');
+        debugPrint('Error fetching notifications: $e');
       }
     }
   }
@@ -97,7 +97,7 @@ class NotificationPollingService {
       unreadCount.value = updatedNotifications.where((n) => !n.isRead).length;
     } catch (e) {
       if (kDebugMode) {
-        print('Error marking notification as read: $e');
+        debugPrint('Error marking notification as read: $e');
       }
       rethrow;
     }
@@ -117,7 +117,7 @@ class NotificationPollingService {
       unreadCount.value = 0;
     } catch (e) {
       if (kDebugMode) {
-        print('Error marking all notifications as read: $e');
+        debugPrint('Error marking all notifications as read: $e');
       }
       rethrow;
     }
@@ -137,7 +137,7 @@ class NotificationPollingService {
       unreadCount.value = updatedNotifications.where((n) => !n.isRead).length;
     } catch (e) {
       if (kDebugMode) {
-        print('Error deleting notification: $e');
+        debugPrint('Error deleting notification: $e');
       }
       rethrow;
     }
