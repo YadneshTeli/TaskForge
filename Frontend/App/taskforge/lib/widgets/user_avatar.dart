@@ -26,26 +26,24 @@ class UserAvatar extends StatelessWidget {
         .toList();
   }
 
+  String _extractInitialsFromParts(List<String> nonEmptyParts, String fallback) {
+    if (nonEmptyParts.length >= 2) {
+      return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
+    }
+    if (nonEmptyParts.length == 1) {
+      return nonEmptyParts[0][0].toUpperCase();
+    }
+    return fallback;
+  }
+
   String _getInitials() {
     if (user != null) {
       final fullName = user!.fullName ?? user!.username;
       final nonEmptyParts = _splitAndFilterName(fullName);
-      if (nonEmptyParts.length >= 2) {
-        return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
-      }
-      if (nonEmptyParts.length == 1) {
-        return nonEmptyParts[0][0].toUpperCase();
-      }
-      return 'U';
+      return _extractInitialsFromParts(nonEmptyParts, 'U');
     } else if (name != null && name!.isNotEmpty) {
       final nonEmptyParts = _splitAndFilterName(name!);
-      if (nonEmptyParts.length >= 2) {
-        return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
-      }
-      if (nonEmptyParts.length == 1) {
-        return nonEmptyParts[0][0].toUpperCase();
-      }
-      return '?';
+      return _extractInitialsFromParts(nonEmptyParts, '?');
     }
     return '?';
   }
