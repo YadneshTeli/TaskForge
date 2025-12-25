@@ -175,12 +175,11 @@ void main() {
       expect(notificationToMark.isRead, false);
       
       // Without a mocked backend, the backend call will fail internally.
-      // NotificationService catches exceptions in its try-catch block (lines 86-89)
+      // NotificationService.markAsRead() catches exceptions in its try-catch block
       // and swallows them without rethrowing, so the method completes successfully
       // from NotificationPollingService's perspective.
       // Since the polling service cannot distinguish between success and silently-failed
-      // calls, it will proceed to update the local state (lines 88-97) as if the
-      // backend call succeeded.
+      // calls, it will proceed to update the local state as if the backend call succeeded.
       await pollingService.markAsRead(notificationToMark.id);
       
       // Verify that local state was updated despite backend failure
@@ -211,12 +210,11 @@ void main() {
       final notificationToDelete = mockNotifications[0];
       
       // Without a mocked backend, the backend call will fail internally.
-      // NotificationService catches exceptions in its try-catch block (lines 115-118)
+      // NotificationService.deleteNotification() catches exceptions in its try-catch block
       // and swallows them without rethrowing, so the method completes successfully
       // from NotificationPollingService's perspective.
       // Since the polling service cannot distinguish between success and silently-failed
-      // calls, it will proceed to update the local state (lines 132-137) as if the
-      // backend call succeeded.
+      // calls, it will proceed to update the local state as if the backend call succeeded.
       await pollingService.deleteNotification(notificationToDelete.id);
       
       // Verify that local state was updated despite backend failure
@@ -370,10 +368,10 @@ void main() {
       final initialUnreadCount = pollingService.unreadCount.value;
 
       // Use ID '1' from mock data. This ID doesn't exist in the actual backend,
-      // so the backend call will fail. However, NotificationService swallows
-      // exceptions (lines 86-89), causing the call to complete successfully from
-      // the polling service's perspective. Unable to detect the failure, the
-      // polling service proceeds to update local state (lines 88-97).
+      // so the backend call will fail. However, NotificationService.markAsRead()
+      // swallows exceptions in its catch block, causing the call to complete
+      // successfully from the polling service's perspective. Unable to detect
+      // the failure, the polling service proceeds to update local state.
       await pollingService.markAsRead('1');
 
       // IMPORTANT: Despite the backend failure, local state IS updated.
@@ -395,10 +393,10 @@ void main() {
       final initialUnreadCount = pollingService.unreadCount.value;
 
       // Use ID '1' from mock data. This ID doesn't exist in the actual backend,
-      // so the backend call will fail. However, NotificationService swallows
-      // exceptions (lines 115-118), causing the call to complete successfully from
-      // the polling service's perspective. Unable to detect the failure, the
-      // polling service proceeds to update local state (lines 132-137).
+      // so the backend call will fail. However, NotificationService.deleteNotification()
+      // swallows exceptions in its catch block, causing the call to complete
+      // successfully from the polling service's perspective. Unable to detect
+      // the failure, the polling service proceeds to update local state.
       await pollingService.deleteNotification('1');
 
       // IMPORTANT: Despite the backend failure, local state IS updated.
