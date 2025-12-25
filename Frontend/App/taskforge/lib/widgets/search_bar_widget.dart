@@ -40,12 +40,13 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   }
 
   void _clearSearch() {
-    _controller.clear();
+    setState(() {
+      _controller.clear();
+    });
     widget.onSearch('');
     if (widget.onClear != null) {
       widget.onClear!();
     }
-    setState(() {}); // Trigger rebuild to hide clear button
   }
 
   @override
