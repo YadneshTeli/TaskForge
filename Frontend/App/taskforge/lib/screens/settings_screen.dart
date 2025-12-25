@@ -49,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Failed to load settings: $e');
+      debugPrint('Error loading settings: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
-      debugPrint('Failed to update theme: $e');
+      debugPrint('Error updating theme: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to update theme. Please try again.')),
