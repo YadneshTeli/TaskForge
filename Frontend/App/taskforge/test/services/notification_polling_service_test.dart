@@ -271,11 +271,11 @@ void main() {
 
   group('NotificationPollingService - Error Handling', () {
     test('refresh swallows errors and completes without throwing', () async {
-      // The service implementation catches all errors during notification fetching
-      // and only logs them via debugPrint.
+      // The polling service implementation catches all errors during notification
+      // fetching and only logs them via debugPrint.
       // This is by design - the polling service should not crash the app if the
-      // backend is temporarily unavailable. Instead, it gracefully degrades to
-      // using cached/mock data.
+      // backend is temporarily unavailable. Any fallback to cached or mock data is
+      // handled by the underlying NotificationService implementation.
       await expectLater(
         pollingService.refresh(),
         completes,
