@@ -122,6 +122,7 @@ class _ProjectCreateDialogState extends State<ProjectCreateDialog> {
         );
       }
     } catch (e) {
+      debugPrint('Failed to create project: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
