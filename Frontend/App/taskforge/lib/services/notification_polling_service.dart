@@ -62,7 +62,7 @@ class NotificationPollingService {
       notifications.value = fetchedNotifications;
       
       // Count unread notifications
-      final unread = fetchedNotifications.where((n) => !n.seen).length;
+      final unread = fetchedNotifications.where((n) => !n.isRead).length;
       unreadCount.value = unread;
 
       if (kDebugMode) {
@@ -85,22 +85,16 @@ class NotificationPollingService {
     try {
       await _notificationService.markAsRead(notificationId);
       
-      // Update local state
+      // Update local state using copyWith
       final updatedNotifications = notifications.value.map((n) {
         if (n.id == notificationId) {
-          return NotificationModel(
-            id: n.id,
-            content: n.content,
-            userId: n.userId,
-            seen: true,
-            createdAt: n.createdAt,
-          );
+          return n.copyWith(isRead: true);
         }
         return n;
       }).toList();
       
       notifications.value = updatedNotifications;
-      unreadCount.value = updatedNotifications.where((n) => !n.seen).length;
+      unreadCount.value = updatedNotifications.where((n) => !n.isRead).length;
     } catch (e) {
       if (kDebugMode) {
         print('Error marking notification as read: $e');
@@ -114,15 +108,9 @@ class NotificationPollingService {
     try {
       await _notificationService.markAllAsRead();
       
-      // Update local state
+      // Update local state using copyWith
       final updatedNotifications = notifications.value.map((n) {
-        return NotificationModel(
-          id: n.id,
-          content: n.content,
-          userId: n.userId,
-          seen: true,
-          createdAt: n.createdAt,
-        );
+        return n.copyWith(isRead: true);
       }).toList();
       
       notifications.value = updatedNotifications;
@@ -146,7 +134,7 @@ class NotificationPollingService {
           .toList();
       
       notifications.value = updatedNotifications;
-      unreadCount.value = updatedNotifications.where((n) => !n.seen).length;
+      unreadCount.value = updatedNotifications.where((n) => !n.isRead).length;
     } catch (e) {
       if (kDebugMode) {
         print('Error deleting notification: $e');
