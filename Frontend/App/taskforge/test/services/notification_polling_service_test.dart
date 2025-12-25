@@ -111,19 +111,15 @@ void main() {
 
   group('NotificationPollingService - Notification Fetching', () {
     test('refresh updates notifications and unread count', () async {
-      // Use reflection to inject mock service for testing
-      // Since the service uses a singleton pattern, we'll test the behavior
-      // by verifying state changes
-      
       // Initial state
       expect(pollingService.notifications.value, isEmpty);
       expect(pollingService.unreadCount.value, 0);
       
-      // Note: Without dependency injection, we can't fully test the fetching
-      // This test verifies the refresh method exists and doesn't throw
+      // Note: Without dependency injection, we can't fully mock the backend service
+      // This test verifies the refresh method completes without throwing
       await pollingService.refresh();
       
-      // The method should complete without throwing
+      // The method should complete successfully
       expect(pollingService.notifications.value, isA<List<NotificationModel>>());
     });
 
@@ -154,8 +150,7 @@ void main() {
       final notificationToMark = mockNotifications[0];
       expect(notificationToMark.isRead, false);
       
-      // Note: Without dependency injection, we test that the method exists
-      // In a real scenario, this would be mocked
+      // Without a mocked backend, the method will throw an exception
       try {
         await pollingService.markAsRead(notificationToMark.id);
       } catch (e) {
@@ -169,7 +164,7 @@ void main() {
       pollingService.notifications.value = mockNotifications;
       pollingService.unreadCount.value = 2;
       
-      // Note: Without dependency injection, we test that the method exists
+      // Without a mocked backend, the method will throw an exception
       try {
         await pollingService.markAllAsRead();
       } catch (e) {
@@ -185,7 +180,7 @@ void main() {
       
       final notificationToDelete = mockNotifications[0];
       
-      // Note: Without dependency injection, we test that the method exists
+      // Without a mocked backend, the method will throw an exception
       try {
         await pollingService.deleteNotification(notificationToDelete.id);
       } catch (e) {
