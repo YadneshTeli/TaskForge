@@ -56,10 +56,10 @@ class QuickTestButton extends StatelessWidget {
     } catch (e) {
       print('❌ Connection error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Cannot reach server: ${e.toString().split(':').first}'),
+        const SnackBar(
+          content: Text('❌ Cannot reach server. Please check your connection.'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ),
       );
     }
