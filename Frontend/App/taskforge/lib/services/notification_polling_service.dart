@@ -145,9 +145,9 @@ class NotificationPollingService {
 
   /// Dispose resources
   void dispose() {
+    // Only stop polling here; do not dispose the ValueNotifiers because this
+    // service is a singleton shared across the app. Disposing them would
+    // break any existing listeners using this singleton instance.
     stopPolling();
-    unreadCount.dispose();
-    notifications.dispose();
-    isPolling.dispose();
   }
 }
