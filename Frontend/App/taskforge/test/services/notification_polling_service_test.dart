@@ -180,11 +180,10 @@ void main() {
       expect(notificationToMark.isRead, false);
       
       // Without a mocked backend, the method will throw an exception
-      try {
-        await pollingService.markAsRead(notificationToMark.id);
-      } catch (e) {
-        // Expected to fail since we don't have a real backend
-      }
+      await expectLater(
+        pollingService.markAsRead(notificationToMark.id),
+        throwsException,
+      );
     });
 
     test('markAllAsRead attempts to update backend', () async {
@@ -193,11 +192,10 @@ void main() {
       pollingService.unreadCount.value = 2;
       
       // Without a mocked backend, the method will throw an exception
-      try {
-        await pollingService.markAllAsRead();
-      } catch (e) {
-        // Expected to fail since we don't have a real backend
-      }
+      await expectLater(
+        pollingService.markAllAsRead(),
+        throwsException,
+      );
     });
 
     test('deleteNotification attempts to delete from backend', () async {
@@ -208,11 +206,10 @@ void main() {
       final notificationToDelete = mockNotifications[0];
       
       // Without a mocked backend, the method will throw an exception
-      try {
-        await pollingService.deleteNotification(notificationToDelete.id);
-      } catch (e) {
-        // Expected to fail since we don't have a real backend
-      }
+      await expectLater(
+        pollingService.deleteNotification(notificationToDelete.id),
+        throwsException,
+      );
     });
   });
 
@@ -357,11 +354,11 @@ void main() {
           List<NotificationModel>.from(pollingService.notifications.value);
       final initialUnreadCount = pollingService.unreadCount.value;
 
-      try {
-        await pollingService.markAsRead('non_existent_id');
-      } catch (_) {
-        // Expected to throw since backend will fail
-      }
+      // Verify that an exception is thrown when backend fails
+      await expectLater(
+        pollingService.markAsRead('non_existent_id'),
+        throwsException,
+      );
 
       // The service only updates local state after successful backend operations.
       // Since the backend call failed, local state should remain unchanged.
@@ -377,11 +374,11 @@ void main() {
           List<NotificationModel>.from(pollingService.notifications.value);
       final initialUnreadCount = pollingService.unreadCount.value;
 
-      try {
-        await pollingService.deleteNotification('non_existent_id');
-      } catch (_) {
-        // Expected to throw since backend will fail
-      }
+      // Verify that an exception is thrown when backend fails
+      await expectLater(
+        pollingService.deleteNotification('non_existent_id'),
+        throwsException,
+      );
 
       // The service only updates local state after successful backend operations.
       // Since the backend call failed, local state should remain unchanged.
