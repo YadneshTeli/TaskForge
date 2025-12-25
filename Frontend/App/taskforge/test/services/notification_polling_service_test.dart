@@ -101,7 +101,6 @@ void main() {
 
     test('startPolling is idempotent when already polling', () {
       pollingService.startPolling();
-      final firstPollingState = pollingService.isPolling.value;
       
       // Try to start again - should be idempotent
       pollingService.startPolling();
@@ -109,7 +108,6 @@ void main() {
       // Note: We can only verify the isPolling flag remains true.
       // The internal Timer creation is an implementation detail that
       // cannot be directly tested without exposing internal state.
-      expect(pollingService.isPolling.value, firstPollingState);
       expect(pollingService.isPolling.value, true);
       
       pollingService.stopPolling();
@@ -344,7 +342,8 @@ void main() {
       expect(unreadCount, allUnreadNotifications.length);
     });
 
-    test('markAsRead with non-existent id does not alter local state', () async {
+    test('markAsRead does not optimistically update state before backend confirmation', () async {
+      // Setup: Set initial state
       pollingService.notifications.value = mockNotifications;
       pollingService.unreadCount.value = 2;
       final initialNotifications =
@@ -357,12 +356,14 @@ void main() {
         // Expected to throw since backend will fail
       }
 
-      // Verify that local state remains unchanged even if exception is thrown
+      // The service only updates local state after successful backend operations.
+      // Since the backend call failed, local state should remain unchanged.
       expect(pollingService.notifications.value, initialNotifications);
       expect(pollingService.unreadCount.value, initialUnreadCount);
     });
 
-    test('deleteNotification with non-existent id does not alter local state', () async {
+    test('deleteNotification does not optimistically update state before backend confirmation', () async {
+      // Setup: Set initial state
       pollingService.notifications.value = mockNotifications;
       pollingService.unreadCount.value = 2;
       final initialNotifications =
@@ -375,7 +376,8 @@ void main() {
         // Expected to throw since backend will fail
       }
 
-      // Verify that local state remains unchanged even if exception is thrown
+      // The service only updates local state after successful backend operations.
+      // Since the backend call failed, local state should remain unchanged.
       expect(pollingService.notifications.value, initialNotifications);
       expect(pollingService.unreadCount.value, initialUnreadCount);
     });
