@@ -168,8 +168,8 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to select image: ${e.toString()}'),
+          const SnackBar(
+            content: Text('Failed to select image. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
