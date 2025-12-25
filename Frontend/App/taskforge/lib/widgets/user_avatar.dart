@@ -21,7 +21,6 @@ class UserAvatar extends StatelessWidget {
   List<String> _splitAndFilterName(String name) {
     return name
         .split(' ')
-        .map((p) => p.trim())
         .where((p) => p.isNotEmpty)
         .toList();
   }
