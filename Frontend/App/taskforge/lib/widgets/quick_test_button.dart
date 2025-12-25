@@ -59,7 +59,7 @@ class QuickTestButton extends StatelessWidget {
         const SnackBar(
           content: Text('❌ Cannot reach server. Please check your connection.'),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 4),
+          duration: const Duration(seconds: 4),
         ),
       );
     }
