@@ -194,9 +194,11 @@ void main() {
     test('notifications ValueNotifier emits changes', () {
       final notificationsList = <List<NotificationModel>>[];
       
-      pollingService.notifications.addListener(() {
+      void listener() {
         notificationsList.add(pollingService.notifications.value);
-      });
+      }
+      
+      pollingService.notifications.addListener(listener);
       
       pollingService.notifications.value = [mockNotifications[0]];
       pollingService.notifications.value = [mockNotifications[0], mockNotifications[1]];
@@ -204,14 +206,18 @@ void main() {
       expect(notificationsList.length, 2);
       expect(notificationsList[0].length, 1);
       expect(notificationsList[1].length, 2);
+      
+      pollingService.notifications.removeListener(listener);
     });
 
     test('unreadCount ValueNotifier emits changes', () {
       final counts = <int>[];
       
-      pollingService.unreadCount.addListener(() {
+      void listener() {
         counts.add(pollingService.unreadCount.value);
-      });
+      }
+      
+      pollingService.unreadCount.addListener(listener);
       
       pollingService.unreadCount.value = 1;
       pollingService.unreadCount.value = 5;
@@ -219,20 +225,26 @@ void main() {
       
       expect(counts.length, 3);
       expect(counts, [1, 5, 0]);
+      
+      pollingService.unreadCount.removeListener(listener);
     });
 
     test('isPolling ValueNotifier emits changes', () {
       final states = <bool>[];
       
-      pollingService.isPolling.addListener(() {
+      void listener() {
         states.add(pollingService.isPolling.value);
-      });
+      }
+      
+      pollingService.isPolling.addListener(listener);
       
       pollingService.isPolling.value = true;
       pollingService.isPolling.value = false;
       
       expect(states.length, 2);
       expect(states, [true, false]);
+      
+      pollingService.isPolling.removeListener(listener);
     });
   });
 
