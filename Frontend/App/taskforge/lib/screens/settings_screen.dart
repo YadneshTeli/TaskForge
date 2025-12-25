@@ -49,12 +49,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Failed to load settings: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load settings: ${e.toString()}')),
+          const SnackBar(content: Text('Failed to load settings. Please try again.')),
         );
       }
     }
@@ -72,9 +73,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Failed to update theme: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update theme: ${e.toString()}')),
+          const SnackBar(content: Text('Failed to update theme. Please try again.')),
         );
       }
     }
@@ -93,9 +95,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Failed to update notification preferences: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update preferences: ${e.toString()}')),
+          const SnackBar(content: Text('Failed to update notification preferences. Please try again.')),
         );
       }
     }
