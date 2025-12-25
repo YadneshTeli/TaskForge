@@ -48,8 +48,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send reset email. Please try again.'),
+          const SnackBar(
+            content: const Text('Failed to send reset email. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
