@@ -29,11 +29,10 @@ class UserAvatar extends StatelessWidget {
         }
         return parts[0][0].toUpperCase();
       }
-      // Fallback to original behavior if trimming removed all characters
-      return fullName.isNotEmpty ? fullName[0].toUpperCase() : 'U';
+      // Fallback to default initial if trimming removed all characters
+      return '?';
     } else if (name != null && name!.isNotEmpty) {
-      final originalName = name!;
-      final trimmedName = originalName.trim();
+      final trimmedName = name!.trim();
       if (trimmedName.isNotEmpty) {
         final parts = trimmedName.split(RegExp(r'\s+'));
         if (parts.length >= 2) {
@@ -41,8 +40,8 @@ class UserAvatar extends StatelessWidget {
         }
         return trimmedName[0].toUpperCase();
       }
-      // Fallback to original behavior if trimming removed all characters
-      return originalName[0].toUpperCase();
+      // Fallback to default initial if trimming removed all characters
+      return '?';
     }
     return '?';
   }
