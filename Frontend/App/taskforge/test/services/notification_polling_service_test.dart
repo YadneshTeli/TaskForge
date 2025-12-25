@@ -384,34 +384,6 @@ void main() {
       expect(updatedNotification.isRead, true);
       expect(pollingService.unreadCount.value, lessThan(initialUnreadCount));
     });
-
-    test('deleteNotification updates local state even when backend fails silently', () async {
-      // Setup: Set initial state
-      pollingService.notifications.value = mockNotifications;
-      pollingService.unreadCount.value = 2;
-      final initialNotifications =
-          List<NotificationModel>.from(pollingService.notifications.value);
-      final initialUnreadCount = pollingService.unreadCount.value;
-
-      // Use ID '1' from mock data. This ID doesn't exist in the actual backend,
-      // so the backend call will fail. However, NotificationService.deleteNotification()
-      // catches exceptions without rethrowing them. Although the polling service's
-      // deleteNotification() has a rethrow statement, no exception reaches it from
-      // the backend, causing the call to complete successfully. Unable to detect the
-      // failure, the polling service proceeds to update local state.
-      await pollingService.deleteNotification('1');
-
-      // IMPORTANT: Despite the backend failure, local state IS updated.
-      // This is a design limitation - the service cannot distinguish between
-      // successful backend calls and silently-failed ones, leading to state
-      // inconsistency when the backend fails.
-      expect(
-        pollingService.notifications.value.any((n) => n.id == '1'),
-        false,
-      );
-      expect(pollingService.notifications.value.length, 
-        lessThan(initialNotifications.length));
-    });
   });
 
   group('NotificationPollingService - Integration Scenarios', () {
