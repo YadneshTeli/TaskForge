@@ -278,7 +278,8 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences')),
+        find.textContaining(RegExp(
+            r'Notification preferences updated|Failed to update notification preferences\. Please try again\.')),
         findsOneWidget,
       );
     });
