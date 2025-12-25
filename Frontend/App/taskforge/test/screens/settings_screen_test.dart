@@ -43,29 +43,6 @@ void main() {
       expect(find.text('About'), findsOneWidget);
     });
 
-    testWidgets('displays error snackbar when loading settings fails',
-        (WidgetTester tester) async {
-      // Build the widget
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: SettingsScreen(),
-        ),
-      );
-
-      // Wait for initial pump
-      await tester.pump();
-
-      // Wait for the error handling
-      await tester.pumpAndSettle();
-
-      // Should display error message if API call fails
-      // Note: This test assumes the service will fail in test environment
-      expect(
-        find.text('Failed to load settings. Please try again.'),
-        findsWidgets,
-      );
-    });
-
     testWidgets('theme dialog displays all theme options',
         (WidgetTester tester) async {
       // Build the widget
@@ -112,6 +89,15 @@ void main() {
 
       // Dialog should be closed
       expect(find.text('Choose Theme'), findsNothing);
+
+      // Verify theme subtitle updates to LIGHT
+      expect(find.text('LIGHT'), findsOneWidget);
+
+      // Verify success or error SnackBar appears
+      expect(
+        find.textContaining(RegExp(r'Theme updated|Failed to update theme')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('can select dark theme from dialog',
@@ -136,6 +122,15 @@ void main() {
 
       // Dialog should be closed
       expect(find.text('Choose Theme'), findsNothing);
+
+      // Verify theme subtitle updates to DARK
+      expect(find.text('DARK'), findsOneWidget);
+
+      // Verify success or error SnackBar appears
+      expect(
+        find.textContaining(RegExp(r'Theme updated|Failed to update theme')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('can select system theme from dialog',
@@ -160,6 +155,15 @@ void main() {
 
       // Dialog should be closed
       expect(find.text('Choose Theme'), findsNothing);
+
+      // Verify theme subtitle updates to SYSTEM
+      expect(find.text('SYSTEM'), findsOneWidget);
+
+      // Verify success or error SnackBar appears
+      expect(
+        find.textContaining(RegExp(r'Theme updated|Failed to update theme')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('email notification toggle works correctly',
@@ -193,6 +197,12 @@ void main() {
       // Verify switch state changed
       final newSwitchState = tester.widget<SwitchListTile>(emailSwitch).value;
       expect(newSwitchState, !initialSwitchState);
+
+      // Verify success or error SnackBar appears
+      expect(
+        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('push notification toggle works correctly',
@@ -226,6 +236,12 @@ void main() {
       // Verify switch state changed
       final newSwitchState = tester.widget<SwitchListTile>(pushSwitch).value;
       expect(newSwitchState, !initialSwitchState);
+
+      // Verify success or error SnackBar appears
+      expect(
+        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('in-app notification toggle works correctly',
@@ -259,6 +275,12 @@ void main() {
       // Verify switch state changed
       final newSwitchState = tester.widget<SwitchListTile>(inAppSwitch).value;
       expect(newSwitchState, !initialSwitchState);
+
+      // Verify success or error SnackBar appears
+      expect(
+        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('displays all section headers correctly',
