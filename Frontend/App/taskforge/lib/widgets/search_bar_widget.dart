@@ -45,6 +45,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     if (widget.onClear != null) {
       widget.onClear!();
     }
+    setState(() {}); // Trigger rebuild to hide clear button
   }
 
   @override
