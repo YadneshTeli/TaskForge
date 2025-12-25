@@ -161,7 +161,7 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Theme updated|Failed to update theme')),
+        find.textContaining(RegExp(r'Theme updated successfully|Failed to update theme')),
         findsOneWidget,
       );
     });
