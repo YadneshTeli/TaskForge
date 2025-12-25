@@ -18,14 +18,18 @@ class UserAvatar extends StatelessWidget {
     this.backgroundColor,
   });
 
+  List<String> _splitAndFilterName(String name) {
+    return name
+        .split(' ')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+  }
+
   String _getInitials() {
     if (user != null) {
       final fullName = user!.fullName ?? user!.username;
-      final parts = fullName.split(' ');
-      final nonEmptyParts = parts
-          .map((p) => p.trim())
-          .where((p) => p.isNotEmpty)
-          .toList();
+      final nonEmptyParts = _splitAndFilterName(fullName);
       if (nonEmptyParts.length >= 2) {
         return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
       }
@@ -34,11 +38,7 @@ class UserAvatar extends StatelessWidget {
       }
       return 'U';
     } else if (name != null && name!.isNotEmpty) {
-      final parts = name!.split(' ');
-      final nonEmptyParts = parts
-          .map((p) => p.trim())
-          .where((p) => p.isNotEmpty)
-          .toList();
+      final nonEmptyParts = _splitAndFilterName(name!);
       if (nonEmptyParts.length >= 2) {
         return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
       }
