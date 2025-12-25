@@ -166,6 +166,7 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
         widget.onImageSelected(file);
       }
     } catch (e) {
+      debugPrint('Image selection failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
