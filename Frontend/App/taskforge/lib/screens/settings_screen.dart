@@ -95,10 +95,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
-      debugPrint('Error updating notification preferences: $e');
+      debugPrint('Failed to update notification preferences: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update preferences. Please try again.')),
+          const SnackBar(content: Text('Failed to update notification preferences. Please try again.')),
         );
       }
     }
