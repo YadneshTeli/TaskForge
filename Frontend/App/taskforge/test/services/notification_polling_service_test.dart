@@ -71,7 +71,7 @@ void main() {
     // production usage where the singleton is expected to live for the
     // lifetime of the app.
     //
-    // Tests that add listeners (e.g., ValueNotifier tests starting at line 225)
+    // Tests that add listeners (e.g., ValueNotifier behavior tests)
     // are responsible for removing their own listeners within the test itself
     // to prevent memory leaks and state pollution.
     pollingService.stopPolling();
@@ -282,8 +282,8 @@ void main() {
 
   group('NotificationPollingService - Error Handling', () {
     test('refresh swallows errors and completes without throwing', () async {
-      // The service implementation (notification_polling_service.dart _fetchNotifications)
-      // catches all errors and only logs them via debugPrint.
+      // The service implementation catches all errors during notification fetching
+      // and only logs them via debugPrint.
       // This is by design - the polling service should not crash the app if the
       // backend is temporarily unavailable. Instead, it gracefully degrades to
       // using cached/mock data.
