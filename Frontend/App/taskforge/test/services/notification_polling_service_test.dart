@@ -354,9 +354,10 @@ void main() {
           List<NotificationModel>.from(pollingService.notifications.value);
       final initialUnreadCount = pollingService.unreadCount.value;
 
-      // Verify that an exception is thrown when backend fails
+      // Use an existing notification ID to properly test backend failure behavior
+      // The backend will fail, but the ID exists in the mock notifications
       await expectLater(
-        pollingService.markAsRead('non_existent_id'),
+        pollingService.markAsRead('1'),
         throwsException,
       );
 
@@ -374,9 +375,10 @@ void main() {
           List<NotificationModel>.from(pollingService.notifications.value);
       final initialUnreadCount = pollingService.unreadCount.value;
 
-      // Verify that an exception is thrown when backend fails
+      // Use an existing notification ID to properly test backend failure behavior
+      // The backend will fail, but the ID exists in the mock notifications
       await expectLater(
-        pollingService.deleteNotification('non_existent_id'),
+        pollingService.deleteNotification('1'),
         throwsException,
       );
 
