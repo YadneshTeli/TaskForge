@@ -365,8 +365,6 @@ void main() {
       // Setup: Set initial state
       pollingService.notifications.value = mockNotifications;
       pollingService.unreadCount.value = 2;
-      final initialNotifications =
-          List<NotificationModel>.from(pollingService.notifications.value);
       final initialUnreadCount = pollingService.unreadCount.value;
 
       // Use ID '1' from mock data. This ID doesn't exist in the actual backend,
