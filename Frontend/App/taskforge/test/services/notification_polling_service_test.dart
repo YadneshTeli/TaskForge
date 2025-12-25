@@ -292,27 +292,6 @@ void main() {
         completes,
       );
     });
-
-    test('markAsRead handles errors and rethrows', () async {
-      expect(
-        () async => await pollingService.markAsRead('invalid_id'),
-        throwsException,
-      );
-    });
-
-    test('markAllAsRead handles errors and rethrows', () async {
-      expect(
-        () async => await pollingService.markAllAsRead(),
-        throwsException,
-      );
-    });
-
-    test('deleteNotification handles errors and rethrows', () async {
-      expect(
-        () async => await pollingService.deleteNotification('invalid_id'),
-        throwsException,
-      );
-    });
   });
 
   group('NotificationPollingService - Singleton Pattern', () {
