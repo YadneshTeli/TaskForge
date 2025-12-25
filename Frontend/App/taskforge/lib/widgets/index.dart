@@ -17,3 +17,4 @@ export 'search_bar_widget.dart';
 export 'status_badge.dart';
 export 'custom_text_field.dart';
 export 'info_card.dart';
+export 'notification_bell.dart';

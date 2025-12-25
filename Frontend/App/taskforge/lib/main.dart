@@ -13,6 +13,7 @@ import 'blocs/task/task_bloc.dart';
 import 'blocs/project/project_bloc.dart';
 import 'blocs/notification/notification_bloc.dart';
 import 'utils/constants.dart';
+import 'services/notification_polling_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,8 +72,21 @@ class TaskForgeApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final NotificationPollingService _pollingService = NotificationPollingService();
+
+  @override
+  void dispose() {
+    _pollingService.stopPolling();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +97,18 @@ class AuthWrapper extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message)),
           );
+          // Stop polling on auth error
+          _pollingService.stopPolling();
+        }
+        
+        // Start polling when authenticated
+        if (state is AuthAuthenticated) {
+          _pollingService.startPolling();
+        }
+        
+        // Stop polling when logged out
+        if (state is! AuthAuthenticated && state is! AuthLoading) {
+          _pollingService.stopPolling();
         }
       },
       builder: (context, state) {
