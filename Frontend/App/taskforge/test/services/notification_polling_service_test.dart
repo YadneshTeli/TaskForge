@@ -164,12 +164,6 @@ void main() {
   });
 
   group('NotificationPollingService - State Updates', () {
-    // NOTE: The following tests can only verify that methods throw exceptions
-    // when the backend fails, since the service doesn't support dependency
-    // injection for mocking the NotificationService. Successful scenarios
-    // (where the backend succeeds and state is updated correctly) cannot be
-    // tested without restructuring the service to accept an optional backend
-    // service parameter.
     
     test('markAsRead attempts to update backend', () async {
       // Setup initial state
