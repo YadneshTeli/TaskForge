@@ -95,7 +95,7 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Theme updated|Failed to update theme')),
+        find.textContaining(RegExp(r'Theme updated successfully|Failed to update theme\. Please try again\.')),
         findsOneWidget,
       );
     });
@@ -128,7 +128,7 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Theme updated|Failed to update theme')),
+        find.textContaining(RegExp(r'Theme updated successfully|Failed to update theme\. Please try again\.')),
         findsOneWidget,
       );
     });
@@ -161,7 +161,7 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Theme updated successfully|Failed to update theme')),
+        find.textContaining(RegExp(r'Theme updated successfully|Failed to update theme\. Please try again\.')),
         findsOneWidget,
       );
     });
@@ -200,7 +200,7 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences')),
+        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences\. Please try again\.')),
         findsOneWidget,
       );
     });
@@ -239,7 +239,7 @@ void main() {
 
       // Verify success or error SnackBar appears
       expect(
-        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences')),
+        find.textContaining(RegExp(r'Notification preferences updated|Failed to update notification preferences\. Please try again\.')),
         findsOneWidget,
       );
     });
