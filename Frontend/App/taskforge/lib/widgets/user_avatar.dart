@@ -22,16 +22,30 @@ class UserAvatar extends StatelessWidget {
     if (user != null) {
       final fullName = user!.fullName ?? user!.username;
       final parts = fullName.split(' ');
-      if (parts.length >= 2) {
-        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      final nonEmptyParts = parts
+          .map((p) => p.trim())
+          .where((p) => p.isNotEmpty)
+          .toList();
+      if (nonEmptyParts.length >= 2) {
+        return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
       }
-      return fullName.isNotEmpty ? fullName[0].toUpperCase() : 'U';
+      if (nonEmptyParts.length == 1) {
+        return nonEmptyParts[0][0].toUpperCase();
+      }
+      return 'U';
     } else if (name != null && name!.isNotEmpty) {
       final parts = name!.split(' ');
-      if (parts.length >= 2) {
-        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      final nonEmptyParts = parts
+          .map((p) => p.trim())
+          .where((p) => p.isNotEmpty)
+          .toList();
+      if (nonEmptyParts.length >= 2) {
+        return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
       }
-      return name![0].toUpperCase();
+      if (nonEmptyParts.length == 1) {
+        return nonEmptyParts[0][0].toUpperCase();
+      }
+      return '?';
     }
     return '?';
   }
