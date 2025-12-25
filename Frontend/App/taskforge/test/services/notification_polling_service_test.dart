@@ -99,7 +99,7 @@ void main() {
       expect(pollingService.isPolling.value, false);
     });
 
-    test('calling startPolling multiple times maintains isPolling as true', () {
+    test('startPolling is idempotent when already polling', () {
       pollingService.startPolling();
       final firstPollingState = pollingService.isPolling.value;
       
