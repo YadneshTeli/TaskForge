@@ -130,16 +130,20 @@ void main() {
       
       // Note: Without dependency injection to mock the NotificationService backend,
       // we cannot control or assert the exact data returned by refresh() or the
-      // precise unreadCount that results from it. However, this test does verify
-      // the basic functionality: refresh() completes without throwing and populates
-      // the notifications list using the backend's mock/fallback data.
+      // precise unreadCount that results from it.
+      //
+      // This test verifies the fallback mechanism: When the backend call fails (which
+      // it will without a real backend), NotificationService.getNotifications() returns
+      // mock data from _getMockNotifications(). The polling service's refresh() method
+      // completes successfully and populates the notifications list with this fallback data.
+      //
       // To fully test this behavior with predictable data, the service would need to
       // accept an optional NotificationService parameter for dependency injection.
       await pollingService.refresh();
       
-      // The method should complete successfully, returning mock data
+      // The method should complete successfully with fallback mock data
       expect(pollingService.notifications.value, isA<List<NotificationModel>>());
-      // After refresh with mock data, we should have some notifications
+      // NotificationService._getMockNotifications() returns a non-empty list
       expect(pollingService.notifications.value.length, greaterThan(0));
     });
 
