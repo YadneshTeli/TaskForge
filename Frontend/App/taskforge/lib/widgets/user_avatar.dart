@@ -18,20 +18,31 @@ class UserAvatar extends StatelessWidget {
     this.backgroundColor,
   });
 
+  List<String> _splitAndFilterName(String name) {
+    return name
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .toList();
+  }
+
+  String _extractInitialsFromParts(List<String> nonEmptyParts, String fallback) {
+    if (nonEmptyParts.length >= 2) {
+      return '${nonEmptyParts[0][0]}${nonEmptyParts[1][0]}'.toUpperCase();
+    }
+    if (nonEmptyParts.length == 1) {
+      return nonEmptyParts[0][0].toUpperCase();
+    }
+    return fallback;
+  }
+
   String _getInitials() {
     if (user != null) {
       final fullName = user!.fullName ?? user!.username;
-      final parts = fullName.split(' ');
-      if (parts.length >= 2) {
-        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      }
-      return fullName.isNotEmpty ? fullName[0].toUpperCase() : 'U';
+      final nonEmptyParts = _splitAndFilterName(fullName);
+      return _extractInitialsFromParts(nonEmptyParts, 'U');
     } else if (name != null && name!.isNotEmpty) {
-      final parts = name!.split(' ');
-      if (parts.length >= 2) {
-        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      }
-      return name![0].toUpperCase();
+      final nonEmptyParts = _splitAndFilterName(name!);
+      return _extractInitialsFromParts(nonEmptyParts, '?');
     }
     return '?';
   }
