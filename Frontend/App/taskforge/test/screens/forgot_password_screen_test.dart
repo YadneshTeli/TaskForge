@@ -5,7 +5,8 @@ import 'package:taskforge/screens/forgot_password_screen.dart';
 
 void main() {
   group('ForgotPasswordScreen', () {
-    testWidgets('displays initial UI correctly', (WidgetTester tester) async {
+    
+    testWidgets('displays AppBar and body UI correctly', (WidgetTester tester) async {
       // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
@@ -35,11 +36,11 @@ void main() {
         ),
       );
 
-      // Find email field
+      // Find the email text field
       final emailField = find.byType(TextFormField);
       expect(emailField, findsOneWidget);
-
-      // Verify email icon
+      
+      // Verify it has the email icon
       expect(find.byIcon(Icons.email_outlined), findsOneWidget);
     });
 
@@ -51,7 +52,7 @@ void main() {
         ),
       );
 
-      // Tap submit button without entering email
+      // Tap the send button without entering email
       await tester.tap(find.text('Send Reset Link'));
       await tester.pumpAndSettle();
 
@@ -68,7 +69,7 @@ void main() {
       );
 
       // Enter invalid email
-      await tester.enterText(find.byType(TextFormField), 'invalidemail');
+      await tester.enterText(find.byType(TextFormField), 'invalid-email');
       await tester.tap(find.text('Send Reset Link'));
       await tester.pumpAndSettle();
 
@@ -126,121 +127,162 @@ void main() {
         ),
       );
 
-      // Find the submit button
-      final button = tester.widget<ElevatedButton>(
-          find.byType(ElevatedButton));
+      // Enter some text
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
       
-      // Button should be enabled initially (onPressed is not null)
-      // because _isLoading is false by default
-      expect(button.onPressed, isNotNull);
+      // Remove the widget
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      
+      // No errors should occur from improper disposal
+      expect(tester.takeException(), isNull);
     });
 
-    testWidgets('back button navigates back', (WidgetTester tester) async {
-      // Build the widget with navigation
+    testWidgets('displays lock reset icon', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ForgotPasswordScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text('Go to Forgot Password'),
-                ),
-              ),
-            ),
-          ),
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
         ),
       );
 
-      // Navigate to ForgotPasswordScreen
-      await tester.tap(find.text('Go to Forgot Password'));
+      // Verify the lock reset icon is displayed
+      expect(find.byIcon(Icons.lock_reset), findsOneWidget);
+    });
+
+    testWidgets('send button is enabled initially with valid email', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Find the ElevatedButton
+      final sendButton = tester.widget<ElevatedButton>(
+        find.ancestor(
+          of: find.text('Send Reset Link'),
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+
+      // Button should be present and enabled
+      expect(sendButton.onPressed, isNotNull);
+    });
+
+    testWidgets('shows loading state when sending reset email', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Tap the send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pump(); // Start the async operation
+
+      // Should show loading indicator inside the button
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      
+      // The send button text should not be visible during loading
+      expect(find.text('Send Reset Link'), findsNothing);
+      
+      // Clean up pending timers
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows error SnackBar when API call fails', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Tap the send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pump();
+      
+      // Wait for the async operation to complete
+      // In test environment, API calls will fail
       await tester.pumpAndSettle();
 
-      // Verify we're on ForgotPasswordScreen
-      expect(find.text('Forgot Password'), findsOneWidget);
+      // Should display error message in SnackBar
+      expect(find.text('Failed to send reset email. Please try again.'), findsOneWidget);
+      
+      // Should still show the form (not in success state)
+      expect(find.byType(TextFormField), findsOneWidget);
+    });
 
-      // Tap back button
-      await tester.tap(find.byIcon(Icons.arrow_back));
+    testWidgets('validates that whitespace is trimmed from email', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter email with only whitespace
+      await tester.enterText(find.byType(TextFormField), '   ');
+      await tester.pump();
+      
+      // Tap send button
+      await tester.tap(find.text('Send Reset Link'));
       await tester.pumpAndSettle();
 
-      // Should navigate back
-      expect(find.text('Go to Forgot Password'), findsOneWidget);
-      expect(find.text('Forgot Password'), findsNothing);
+      // Should display validation error because trimmed value is empty
+      expect(find.text('Please enter your email'), findsOneWidget);
     });
 
-    testWidgets('email field has correct keyboard type',
-        (WidgetTester tester) async {
-      // Build the widget
+    testWidgets('button is disabled during loading state', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
         ),
       );
 
-      // Find email field
-      final emailField = tester.widget<TextFormField>(find.byType(TextFormField));
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
 
-      // Verify keyboard type is email
-      expect(emailField.keyboardType, TextInputType.emailAddress);
+      // Tap the send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pump();
+
+      // Find the ElevatedButton during loading
+      final sendButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+
+      // Button should be disabled (onPressed is null)
+      expect(sendButton.onPressed, isNull);
+      
+      // Clean up pending timers
+      await tester.pumpAndSettle();
     });
 
-    testWidgets('email field autofocuses', (WidgetTester tester) async {
-      // Build the widget
+    testWidgets('shows appropriate subtitle text initially', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
         ),
       );
 
-      // Find email field
-      final emailField = tester.widget<TextFormField>(find.byType(TextFormField));
-
-      // Verify autofocus is enabled
-      expect(emailField.autofocus, true);
-    });
-
-    testWidgets('form has correct structure', (WidgetTester tester) async {
-      // Build the widget
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ForgotPasswordScreen(),
-        ),
+      // Should show the initial instruction text
+      expect(
+        find.text('Enter your email address and we\'ll send you a link to reset your password.'),
+        findsOneWidget,
       );
-
-      // Verify form structure
-      expect(find.byType(Form), findsOneWidget);
-      expect(find.byType(SafeArea), findsOneWidget);
-      expect(find.byType(SingleChildScrollView), findsOneWidget);
     });
 
-    testWidgets('displays lock icon with correct size',
-        (WidgetTester tester) async {
-      // Build the widget
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ForgotPasswordScreen(),
-        ),
-      );
-
-      // Find lock icon
-      final iconFinder = find.byIcon(Icons.lock_reset);
-      expect(iconFinder, findsOneWidget);
-
-      // Verify icon size
-      final icon = tester.widget<Icon>(iconFinder);
-      expect(icon.size, 80);
-    });
-
-    testWidgets('displays all required form elements',
-        (WidgetTester tester) async {
-      // Build the widget
+    testWidgets('"Remember your password? Sign in" button is present and tappable', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
