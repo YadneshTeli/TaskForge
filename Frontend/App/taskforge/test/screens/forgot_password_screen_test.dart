@@ -276,16 +276,54 @@ void main() {
     });
 
     // Note: Tests for the success state UI (when _emailSent is true) require mocking
-    // AuthService.requestPasswordReset. In the current test environment, HTTP requests
-    // fail by default, so we test the error path. To test the success path, consider:
-    // 1. Adding a mock for AuthService
-    // 2. Testing the UI state changes when _emailSent is manually set to true
-    // 3. Using integration tests with a test server
+    // AuthService.requestPasswordReset. While mocktail is available in test_helpers.dart,
+    // the current architecture uses static methods in AuthService, which cannot be mocked
+    // directly without significant refactoring.
+    //
+    // To enable success state testing, consider one of these approaches:
+    //
+    // 1. Refactor ForgotPasswordScreen to accept an injectable AuthService:
+    //    - Create an abstract AuthService interface
+    //    - Modify the screen to accept an optional AuthService parameter
+    //    - Use dependency injection or service locator pattern
+    //
+    // 2. Add a test-only constructor that accepts a callback:
+    //    ```dart
+    //    class ForgotPasswordScreen extends StatefulWidget {
+    //      final Future<void> Function(String)? onPasswordResetRequest;
+    //      const ForgotPasswordScreen({super.key, this.onPasswordResetRequest});
+    //    }
+    //    ```
+    //
+    // 3. Use integration tests with a test server that can return success responses
     //
     // Success state UI elements that would need testing with proper mocking:
-    // - Success message container with green styling and "Email sent to..." text
+    // - Success message container with green styling (line 158-177 in implementation)
+    // - "Email sent to..." text display showing the entered email
     // - "Back to Login" OutlinedButton that calls Navigator.pop()
     // - "Send Another Email" TextButton that resets _emailSent to false
     // - Subtitle text changes to success message
+    // - Form fields are hidden when in success state
+    //
+    // Example test structure if dependency injection were implemented:
+    // ```dart
+    // testWidgets('displays success UI after successful email send', (tester) async {
+    //   final mockAuthService = MockAuthService();
+    //   when(() => mockAuthService.requestPasswordReset(any()))
+    //       .thenAnswer((_) async => Future.value());
+    //   
+    //   await tester.pumpWidget(MaterialApp(
+    //     home: ForgotPasswordScreen(authService: mockAuthService),
+    //   ));
+    //   
+    //   await tester.enterText(find.byType(TextFormField), 'test@example.com');
+    //   await tester.tap(find.text('Send Reset Link'));
+    //   await tester.pumpAndSettle();
+    //   
+    //   expect(find.text('Email sent to test@example.com'), findsOneWidget);
+    //   expect(find.text('Back to Login'), findsOneWidget);
+    //   expect(find.text('Send Another Email'), findsOneWidget);
+    // });
+    // ```
   });
 }
