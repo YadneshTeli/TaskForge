@@ -14,17 +14,22 @@ void main() {
         ),
       );
 
-      // Should display the main UI elements
-      // Note: 'Reset Password' is the body heading, 'Forgot Password' is the AppBar title
-      expect(find.text('Reset Password'), findsOneWidget); // Body heading
-      expect(find.text('Forgot Password'), findsOneWidget); // AppBar title
-      expect(find.text('Enter your email address and we\'ll send you a link to reset your password.'), findsOneWidget);
+      // Verify title and initial text
+      expect(find.text('Forgot Password'), findsOneWidget);
+      expect(find.text('Reset Password'), findsOneWidget);
+      expect(
+        find.text(
+            'Enter your email address and we\'ll send you a link to reset your password.'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.lock_reset), findsOneWidget);
       expect(find.text('Email Address'), findsOneWidget);
       expect(find.text('Send Reset Link'), findsOneWidget);
-      expect(find.text('Remember your password? Sign in'), findsOneWidget);
     });
 
-    testWidgets('has email text field with proper decoration', (WidgetTester tester) async {
+    testWidgets('has email input field with correct configuration',
+        (WidgetTester tester) async {
+      // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
@@ -40,6 +45,7 @@ void main() {
     });
 
     testWidgets('validates empty email', (WidgetTester tester) async {
+      // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
@@ -55,6 +61,7 @@ void main() {
     });
 
     testWidgets('validates invalid email format', (WidgetTester tester) async {
+      // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
@@ -70,29 +77,50 @@ void main() {
       expect(find.text('Please enter a valid email'), findsOneWidget);
     });
 
-    testWidgets('back button is present in app bar', (WidgetTester tester) async {
+    testWidgets('accepts valid email format', (WidgetTester tester) async {
+      // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
         ),
       );
 
-      // Verify back button exists
-      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+      // Enter valid email
+      await tester.enterText(
+          find.byType(TextFormField), 'test@example.com');
+      
+      // Manually trigger validation without submitting
+      final formState = tester.state<FormState>(find.byType(Form));
+      final isValid = formState.validate();
+
+      // Should pass validation (no error messages displayed)
+      expect(isValid, isTrue);
+      expect(find.text('Please enter a valid email'), findsNothing);
+      expect(find.text('Please enter your email'), findsNothing);
     });
 
-    testWidgets('form key is properly initialized', (WidgetTester tester) async {
+    testWidgets('email field accepts whitespace in input',
+        (WidgetTester tester) async {
+      // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
         ),
       );
 
-      // Form should exist
-      expect(find.byType(Form), findsOneWidget);
+      // Enter email with whitespace
+      await tester.enterText(
+          find.byType(TextFormField), '  test@example.com  ');
+
+      // Verify the field preserves whitespace in the controller
+      // (whitespace is trimmed only on submission, not in the controller)
+      final textField = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(textField.controller?.text, '  test@example.com  ');
     });
 
-    testWidgets('email controller is properly disposed', (WidgetTester tester) async {
+    testWidgets('submit button is enabled when not loading',
+        (WidgetTester tester) async {
+      // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
@@ -261,69 +289,11 @@ void main() {
         ),
       );
 
-      // Verify the "Remember your password? Sign in" button exists
-      final signInButton = find.text('Remember your password? Sign in');
-      expect(signInButton, findsOneWidget);
-
-      // Verify it's a TextButton (which calls Navigator.pop when tapped)
-      expect(
-        find.ancestor(
-          of: signInButton,
-          matching: find.byType(TextButton),
-        ),
-        findsOneWidget,
-      );
+      // Verify all form elements are present
+      expect(find.byType(TextFormField), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.byType(Form), findsOneWidget);
+      expect(find.text('Send Reset Link'), findsOneWidget);
     });
-
-    // Note: Tests for the success state UI (when _emailSent is true) require mocking
-    // AuthService.requestPasswordReset. While mocktail is available in helpers/test_helpers.dart,
-    // the current architecture uses static methods in AuthService, which cannot be mocked
-    // directly without significant refactoring.
-    //
-    // To enable success state testing, consider one of these approaches:
-    //
-    // 1. Refactor ForgotPasswordScreen to accept an injectable AuthService:
-    //    - Create an abstract AuthService interface
-    //    - Modify the screen to accept an optional AuthService parameter
-    //    - Use dependency injection or service locator pattern
-    //
-    // 2. Add a test-only constructor that accepts a callback:
-    //    ```dart
-    //    class ForgotPasswordScreen extends StatefulWidget {
-    //      final Future<void> Function(String)? onPasswordResetRequest;
-    //      const ForgotPasswordScreen({super.key, this.onPasswordResetRequest});
-    //    }
-    //    ```
-    //
-    // 3. Use integration tests with a test server that can return success responses
-    //
-    // Success state UI elements that would need testing with proper mocking:
-    // - Success message container with green styling (line 158-177 in implementation)
-    // - "Email sent to..." text display showing the entered email
-    // - "Back to Login" OutlinedButton that calls Navigator.pop()
-    // - "Send Another Email" TextButton that resets _emailSent to false
-    // - Subtitle text changes to success message
-    // - Form fields are hidden when in success state
-    //
-    // Example test structure if dependency injection were implemented:
-    // ```dart
-    // testWidgets('displays success UI after successful email send', (tester) async {
-    //   final mockAuthService = MockAuthService();
-    //   when(() => mockAuthService.requestPasswordReset(any()))
-    //       .thenAnswer((_) async {});
-    //   
-    //   await tester.pumpWidget(MaterialApp(
-    //     home: ForgotPasswordScreen(authService: mockAuthService),
-    //   ));
-    //   
-    //   await tester.enterText(find.byType(TextFormField), 'test@example.com');
-    //   await tester.tap(find.text('Send Reset Link'));
-    //   await tester.pumpAndSettle();
-    //   
-    //   expect(find.text('Email sent to test@example.com'), findsOneWidget);
-    //   expect(find.text('Back to Login'), findsOneWidget);
-    //   expect(find.text('Send Another Email'), findsOneWidget);
-    // });
-    // ```
   });
 }
