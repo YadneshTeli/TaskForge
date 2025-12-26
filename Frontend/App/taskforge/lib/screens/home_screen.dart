@@ -144,20 +144,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'settings',
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(Icons.settings, color: Colors.grey),
                           SizedBox(width: 8),
                           Text('Settings'),
                         ],
                       ),
                     ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'network_test',
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(Icons.network_check, color: Colors.blue),
                           SizedBox(width: 8),
                           Text('Network Test'),

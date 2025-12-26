@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
@@ -55,9 +57,20 @@ class QuickTestButton extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('Connection error: $e');
+      
+      // Provide more specific error messages without exposing sensitive details
+      String errorMessage = '❌ Cannot reach server. Please check your connection.';
+      if (e is TimeoutException) {
+        errorMessage = '❌ Server request timed out. Please try again.';
+      } else if (e is SocketException) {
+        errorMessage = '❌ Network error. Please check your internet connection.';
+      } else if (e is http.ClientException) {
+        errorMessage = '❌ HTTP error while contacting server. Please try again or contact support.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Cannot reach server. Please check your connection.'),
+        SnackBar(
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 4),
         ),
