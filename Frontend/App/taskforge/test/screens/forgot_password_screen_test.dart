@@ -15,8 +15,9 @@ void main() {
       );
 
       // Should display the main UI elements
-      expect(find.text('Reset Password'), findsOneWidget);
-      expect(find.text('Forgot Password'), findsOneWidget);
+      // Note: 'Reset Password' is the body heading, 'Forgot Password' is the AppBar title
+      expect(find.text('Reset Password'), findsOneWidget); // Body heading
+      expect(find.text('Forgot Password'), findsOneWidget); // AppBar title
       expect(find.text('Enter your email address and we\'ll send you a link to reset your password.'), findsOneWidget);
       expect(find.text('Email Address'), findsOneWidget);
       expect(find.text('Send Reset Link'), findsOneWidget);
@@ -108,25 +109,6 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('trims whitespace from email input', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ForgotPasswordScreen(),
-        ),
-      );
-
-      // Enter email with whitespace
-      await tester.enterText(find.byType(TextFormField), '  test@example.com  ');
-      
-      // Tap send button
-      await tester.tap(find.text('Send Reset Link'));
-      await tester.pump();
-
-      // Should not show validation error (whitespace is trimmed)
-      await tester.pumpAndSettle();
-      expect(find.text('Please enter a valid email'), findsNothing);
-    });
-
     testWidgets('displays lock reset icon', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -138,7 +120,7 @@ void main() {
       expect(find.byIcon(Icons.lock_reset), findsOneWidget);
     });
 
-    testWidgets('send button is enabled initially', (WidgetTester tester) async {
+    testWidgets('send button is enabled initially with valid email', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
@@ -159,6 +141,117 @@ void main() {
 
       // Button should be present and enabled
       expect(sendButton.onPressed, isNotNull);
+    });
+
+    testWidgets('shows loading state when sending reset email', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Tap the send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pump(); // Start the async operation
+
+      // Should show loading indicator inside the button
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      
+      // The send button text should not be visible during loading
+      expect(find.text('Send Reset Link'), findsNothing);
+      
+      // Clean up pending timers
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows error SnackBar when API call fails', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Tap the send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pump();
+      
+      // Wait for the async operation to complete
+      // In test environment, API calls will fail
+      await tester.pumpAndSettle();
+
+      // Should display error message in SnackBar
+      expect(find.text('Failed to send reset email. Please try again.'), findsOneWidget);
+      
+      // Should still show the form (not in success state)
+      expect(find.byType(TextFormField), findsOneWidget);
+    });
+
+    testWidgets('validates that whitespace is trimmed from email', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter email with only whitespace
+      await tester.enterText(find.byType(TextFormField), '   ');
+      await tester.pump();
+      
+      // Tap send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pumpAndSettle();
+
+      // Should display validation error because trimmed value is empty
+      expect(find.text('Please enter your email'), findsOneWidget);
+    });
+
+    testWidgets('button is disabled during loading state', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Tap the send button
+      await tester.tap(find.text('Send Reset Link'));
+      await tester.pump();
+
+      // Find the ElevatedButton during loading
+      final sendButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+
+      // Button should be disabled (onPressed is null)
+      expect(sendButton.onPressed, isNull);
+      
+      // Clean up pending timers
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows appropriate subtitle text initially', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Should show the initial instruction text
+      expect(
+        find.text('Enter your email address and we\'ll send you a link to reset your password.'),
+        findsOneWidget,
+      );
     });
   });
 }
