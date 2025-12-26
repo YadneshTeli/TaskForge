@@ -66,8 +66,6 @@ class QuickTestButton extends StatelessWidget {
         errorMessage = '❌ Network error. Please check your internet connection.';
       } else if (e is HttpException) {
         errorMessage = '❌ HTTP error while contacting server. Please try again or contact support.';
-      } else if (e is FormatException) {
-        errorMessage = '❌ Invalid server response. Please contact support.';
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
