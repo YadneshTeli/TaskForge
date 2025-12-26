@@ -6,7 +6,7 @@ import 'package:taskforge/screens/forgot_password_screen.dart';
 void main() {
   group('ForgotPasswordScreen', () {
     
-    testWidgets('displays initial UI correctly', (WidgetTester tester) async {
+    testWidgets('displays AppBar and body UI correctly', (WidgetTester tester) async {
       // Build the widget
       await tester.pumpWidget(
         const MaterialApp(
