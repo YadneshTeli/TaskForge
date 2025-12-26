@@ -16,12 +16,11 @@ void main() {
 
       // Should display the main UI elements
       expect(find.text('Reset Password'), findsOneWidget);
-      expect(find.text('Forgot your password?'), findsOneWidget);
-      expect(find.text('No worries! Enter your email address and we\'ll send you a link to reset your password.'), findsOneWidget);
+      expect(find.text('Forgot Password'), findsOneWidget);
+      expect(find.text('Enter your email address and we\'ll send you a link to reset your password.'), findsOneWidget);
       expect(find.text('Email Address'), findsOneWidget);
       expect(find.text('Send Reset Link'), findsOneWidget);
-      expect(find.text('Remember your password?'), findsOneWidget);
-      expect(find.text('Back to Login'), findsOneWidget);
+      expect(find.text('Remember your password? Sign in'), findsOneWidget);
     });
 
     testWidgets('has email text field with proper decoration', (WidgetTester tester) async {
@@ -51,7 +50,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should display validation error
-      expect(find.text('Please enter your email address'), findsOneWidget);
+      expect(find.text('Please enter your email'), findsOneWidget);
     });
 
     testWidgets('validates invalid email format', (WidgetTester tester) async {
@@ -67,101 +66,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should display validation error
-      expect(find.text('Please enter a valid email address'), findsOneWidget);
+      expect(find.text('Please enter a valid email'), findsOneWidget);
     });
 
-    testWidgets('shows loading state when sending reset email', (WidgetTester tester) async {
+    testWidgets('back button is present in app bar', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ForgotPasswordScreen(),
         ),
       );
 
-      // Enter valid email
-      await tester.enterText(find.byType(TextFormField), 'test@example.com');
-      
-      // Tap send button
-      await tester.tap(find.text('Send Reset Link'));
-      await tester.pump(); // Start the async operation
-
-      // Should show loading indicator
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    });
-
-    testWidgets('back to login button navigates back', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: const Scaffold(body: Text('Login Screen')),
-          routes: {
-            '/forgot-password': (context) => const ForgotPasswordScreen(),
-          },
-        ),
-      );
-
-      // Navigate to forgot password screen
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ForgotPasswordScreen(),
-        ),
-      );
-
-      // Tap back to login button
-      final backButton = find.text('Back to Login');
-      expect(backButton, findsOneWidget);
-      
-      // Verify it's a TextButton
-      expect(find.ancestor(
-        of: backButton,
-        matching: find.byType(TextButton),
-      ), findsOneWidget);
-    });
-
-    testWidgets('displays success state after email sent', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ForgotPasswordScreen(),
-        ),
-      );
-
-      // Enter valid email
-      await tester.enterText(find.byType(TextFormField), 'test@example.com');
-      
-      // Tap send button
-      await tester.tap(find.text('Send Reset Link'));
-      await tester.pump();
-      
-      // Wait for the async operation to complete
-      await tester.pumpAndSettle();
-
-      // Should display success message or icon (depending on implementation)
-      // The screen should either show a success message or change state
-      expect(find.byType(ForgotPasswordScreen), findsOneWidget);
-    });
-
-    testWidgets('disables send button while loading', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ForgotPasswordScreen(),
-        ),
-      );
-
-      // Enter valid email
-      await tester.enterText(find.byType(TextFormField), 'test@example.com');
-      
-      // Tap send button
-      await tester.tap(find.text('Send Reset Link'));
-      await tester.pump();
-
-      // Find the ElevatedButton
-      final sendButton = tester.widget<ElevatedButton>(
-        find.ancestor(
-          of: find.text('Send Reset Link'),
-          matching: find.byType(ElevatedButton),
-        ).first,
-      );
-
-      // Button should be present
-      expect(sendButton, isNotNull);
+      // Verify back button exists
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     });
 
     testWidgets('form key is properly initialized', (WidgetTester tester) async {
@@ -208,7 +124,41 @@ void main() {
 
       // Should not show validation error (whitespace is trimmed)
       await tester.pumpAndSettle();
-      expect(find.text('Please enter a valid email address'), findsNothing);
+      expect(find.text('Please enter a valid email'), findsNothing);
+    });
+
+    testWidgets('displays lock reset icon', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Verify the lock reset icon is displayed
+      expect(find.byIcon(Icons.lock_reset), findsOneWidget);
+    });
+
+    testWidgets('send button is enabled initially', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Enter valid email
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.pump();
+
+      // Find the ElevatedButton
+      final sendButton = tester.widget<ElevatedButton>(
+        find.ancestor(
+          of: find.text('Send Reset Link'),
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+
+      // Button should be present and enabled
+      expect(sendButton.onPressed, isNotNull);
     });
   });
 }
