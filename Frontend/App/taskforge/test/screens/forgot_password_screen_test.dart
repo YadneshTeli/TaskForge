@@ -253,5 +253,39 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('"Remember your password? Sign in" button is present and tappable', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ForgotPasswordScreen(),
+        ),
+      );
+
+      // Verify the "Remember your password? Sign in" button exists
+      final signInButton = find.text('Remember your password? Sign in');
+      expect(signInButton, findsOneWidget);
+
+      // Verify it's a TextButton (which calls Navigator.pop when tapped)
+      expect(
+        find.ancestor(
+          of: signInButton,
+          matching: find.byType(TextButton),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    // Note: Tests for the success state UI (when _emailSent is true) require mocking
+    // AuthService.requestPasswordReset. In the current test environment, HTTP requests
+    // fail by default, so we test the error path. To test the success path, consider:
+    // 1. Adding a mock for AuthService
+    // 2. Testing the UI state changes when _emailSent is manually set to true
+    // 3. Using integration tests with a test server
+    //
+    // Success state UI elements that would need testing with proper mocking:
+    // - Success message container with green styling and "Email sent to..." text
+    // - "Back to Login" OutlinedButton that calls Navigator.pop()
+    // - "Send Another Email" TextButton that resets _emailSent to false
+    // - Subtitle text changes to success message
   });
 }
