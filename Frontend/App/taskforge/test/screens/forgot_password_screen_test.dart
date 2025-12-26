@@ -138,7 +138,7 @@ void main() {
       // Note: Actual behavior depends on AuthService implementation
       final successText = find.textContaining(RegExp(
           r'Password reset email sent!|We\'ve sent you an email with instructions'));
-      expect(successText, findsWidgets);
+      expect(successText, findsOneWidget);
     });
 
     testWidgets('back button navigates back', (WidgetTester tester) async {
