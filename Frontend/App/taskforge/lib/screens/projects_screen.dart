@@ -5,6 +5,7 @@ import '../blocs/project/project_bloc.dart';
 import '../blocs/project/project_event.dart';
 import '../blocs/project/project_state.dart';
 import '../models/project.dart';
+import '../widgets/index.dart';
 import 'tasks_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
@@ -49,24 +50,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         body: BlocBuilder<ProjectBloc, ProjectState>(
           builder: (context, state) {
             if (state is ProjectLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingWidget(
+                message: 'Loading projects...',
+                showMessage: true,
+              );
             }
             
             if (state is ProjectError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text('Error: ${state.message}'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context.read<ProjectBloc>().add(LoadProjects()),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+              return ErrorDisplayWidget(
+                message: 'Failed to load projects',
+                details: state.message,
+                onRetry: () => context.read<ProjectBloc>().add(LoadProjects()),
               );
             }
             
@@ -74,17 +68,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               final projects = state.projects;
               
               if (projects.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.folder_outlined, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No projects found'),
-                      SizedBox(height: 8),
-                      Text('Tap + to create your first project'),
-                    ],
-                  ),
+                return EmptyStateWidget(
+                  icon: Icons.folder_outlined,
+                  title: 'No Projects Yet',
+                  message: 'Create your first project to get started with task management',
+                  actionLabel: 'Create Project',
+                  onActionPressed: _showCreateProjectDialog,
                 );
               }
               
@@ -165,54 +154,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showCreateProjectDialog() {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create Project'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Project Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.trim().isNotEmpty) {
-                context.read<ProjectBloc>().add(CreateProject(
-                  name: nameController.text.trim(),
-                  description: descriptionController.text.trim().isEmpty 
-                      ? null 
-                      : descriptionController.text.trim(),
-                ));
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
+      builder: (context) => ProjectCreateDialog(
+        onProjectCreated: (project) {
+          context.read<ProjectBloc>().add(LoadProjects());
+        },
       ),
     );
   }
@@ -325,27 +272,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         _showEditProjectDialog(project);
         break;
       case 'delete':
-        final confirmed = await showDialog<bool>(
+        final confirmed = await ConfirmationDialog.showDeleteConfirmation(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Delete Project'),
-            content: Text('Are you sure you want to delete "${project.name}"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
+          itemName: 'project "${project.name}"',
+          additionalMessage: 'This will permanently delete the project and all its tasks.',
         );
         
-        if (confirmed == true) {
-          context.read<ProjectBloc>().add(DeleteProject(projectId: project.id));
+        if (confirmed) {
+          if (mounted) {
+            context.read<ProjectBloc>().add(DeleteProject(projectId: project.id));
+          }
         }
         break;
     }

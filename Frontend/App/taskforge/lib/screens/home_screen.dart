@@ -19,6 +19,7 @@ import 'profile_screen.dart';
 import 'projects_screen.dart';
 import 'notifications_screen.dart';
 import 'network_test_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -123,6 +124,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 return PopupMenuButton<String>(
                   onSelected: (value) {
                     switch (value) {
+                      case 'settings':
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                        break;
                       case 'network_test':
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -136,13 +144,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    PopupMenuItem(
+                    const PopupMenuItem(
+                      value: 'settings',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings, color: Colors.grey),
+                          SizedBox(width: 8),
+                          Text('Settings'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
                       value: 'network_test',
                       child: Row(
                         children: [
-                          const Icon(Icons.network_check, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          const Text('Network Test'),
+                          Icon(Icons.network_check, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('Network Test'),
                         ],
                       ),
                     ),
