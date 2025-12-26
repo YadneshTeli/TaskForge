@@ -59,14 +59,18 @@ class QuickTestButton extends StatelessWidget {
     } catch (e) {
       debugPrint('Connection error: $e');
       
-      // Provide more specific error messages without exposing sensitive details
+      // Show detailed error type only in debug mode
       String errorMessage = '❌ Cannot reach server. Please check your connection.';
-      if (e is TimeoutException) {
-        errorMessage = '❌ Server request timed out. Please try again.';
-      } else if (e is SocketException) {
-        errorMessage = '❌ Network error. Please check your internet connection.';
-      } else if (e is http.ClientException) {
-        errorMessage = '❌ HTTP error while contacting server. Please try again or contact support.';
+      
+      if (kDebugMode) {
+        // Provide more specific error messages for developers
+        if (e is TimeoutException) {
+          errorMessage = '❌ Server request timed out. Please try again.';
+        } else if (e is SocketException) {
+          errorMessage = '❌ Network error. Please check your internet connection.';
+        } else if (e is http.ClientException) {
+          errorMessage = '❌ HTTP error while contacting server. Please try again or contact support.';
+        }
       }
       
       ScaffoldMessenger.of(context).showSnackBar(
