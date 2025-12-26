@@ -107,8 +107,9 @@ void main() {
         ),
       );
 
-      final textField = tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(textField.obscureText, true);
+      // TextFormField composes an inner TextField; verify properties on TextField
+      final innerField = tester.widget<TextField>(find.byType(TextField));
+      expect(innerField.obscureText, true);
 
       controller.dispose();
     });
@@ -229,8 +230,8 @@ void main() {
         ),
       );
 
-      final textField = tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(textField.maxLines, 3);
+      final innerField = tester.widget<TextField>(find.byType(TextField));
+      expect(innerField.maxLines, 3);
 
       controller.dispose();
     });
@@ -250,8 +251,8 @@ void main() {
         ),
       );
 
-      final textField = tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(textField.keyboardType, TextInputType.emailAddress);
+      final innerField = tester.widget<TextField>(find.byType(TextField));
+      expect(innerField.keyboardType, TextInputType.emailAddress);
 
       controller.dispose();
     });

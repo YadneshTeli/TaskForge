@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskforge/widgets/project_create_dialog.dart';
-import 'package:taskforge/models/project.dart';
+// Removed unused import
 
 void main() {
   group('ProjectCreateDialog', () {
@@ -298,8 +298,9 @@ void main() {
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
 
-      final descriptionField = tester.widget<TextFormField>(
-        find.widgetWithText(TextFormField, 'Description'),
+      // TextFormField composes a TextField internally; verify on TextField
+      final descriptionField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Description'),
       );
       expect(descriptionField.maxLines, 3);
     });
@@ -328,8 +329,8 @@ void main() {
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
 
-      final nameField = tester.widget<TextFormField>(
-        find.widgetWithText(TextFormField, 'Project Name'),
+      final nameField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Project Name'),
       );
       expect(nameField.autofocus, true);
     });

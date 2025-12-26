@@ -107,10 +107,12 @@ class _ProjectCreateDialogState extends State<ProjectCreateDialog> {
 
     try {
       final newProject = await ProjectService.createProject(
-        _nameController.text.trim(),
-        _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
+        CreateProjectInput(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+        ),
       );
       
       widget.onProjectCreated(newProject);
