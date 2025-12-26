@@ -87,15 +87,18 @@ void main() {
       // Enter valid email
       await tester.enterText(
           find.byType(TextFormField), 'test@example.com');
-      await tester.tap(find.text('Send Reset Link'));
-      await tester.pumpAndSettle();
+      
+      // Manually trigger validation without submitting
+      final formState = tester.state<FormState>(find.byType(Form));
+      final isValid = formState.validate();
 
-      // Should not display validation error for email format
+      // Should pass validation (no error messages displayed)
+      expect(isValid, isTrue);
       expect(find.text('Please enter a valid email'), findsNothing);
       expect(find.text('Please enter your email'), findsNothing);
     });
 
-    testWidgets('email field trims whitespace',
+    testWidgets('email field accepts whitespace in input',
         (WidgetTester tester) async {
       // Build the widget
       await tester.pumpWidget(
@@ -108,12 +111,13 @@ void main() {
       await tester.enterText(
           find.byType(TextFormField), '  test@example.com  ');
 
-      // Verify the field accepts the input
+      // Verify the field preserves whitespace in the controller
+      // (whitespace is trimmed only on submission, not in the controller)
       final textField = tester.widget<TextFormField>(find.byType(TextFormField));
       expect(textField.controller?.text, '  test@example.com  ');
     });
 
-    testWidgets('submit button is enabled with valid email',
+    testWidgets('submit button is enabled when not loading',
         (WidgetTester tester) async {
       // Build the widget
       await tester.pumpWidget(
@@ -122,16 +126,12 @@ void main() {
         ),
       );
 
-      // Enter valid email
-      await tester.enterText(
-          find.byType(TextFormField), 'test@example.com');
-      await tester.pump();
-
       // Find the submit button
       final button = tester.widget<ElevatedButton>(
           find.byType(ElevatedButton));
       
-      // Button should be enabled (onPressed is not null)
+      // Button should be enabled initially (onPressed is not null)
+      // because _isLoading is false by default
       expect(button.onPressed, isNotNull);
     });
 
