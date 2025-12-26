@@ -276,7 +276,7 @@ void main() {
     });
 
     // Note: Tests for the success state UI (when _emailSent is true) require mocking
-    // AuthService.requestPasswordReset. While mocktail is available in test_helpers.dart,
+    // AuthService.requestPasswordReset. While mocktail is available in helpers/test_helpers.dart,
     // the current architecture uses static methods in AuthService, which cannot be mocked
     // directly without significant refactoring.
     //
@@ -310,7 +310,7 @@ void main() {
     // testWidgets('displays success UI after successful email send', (tester) async {
     //   final mockAuthService = MockAuthService();
     //   when(() => mockAuthService.requestPasswordReset(any()))
-    //       .thenAnswer((_) async => Future.value());
+    //       .thenAnswer((_) async {});
     //   
     //   await tester.pumpWidget(MaterialApp(
     //     home: ForgotPasswordScreen(authService: mockAuthService),
