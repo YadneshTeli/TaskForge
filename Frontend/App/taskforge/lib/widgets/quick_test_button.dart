@@ -64,7 +64,7 @@ class QuickTestButton extends StatelessWidget {
         errorMessage = '❌ Server request timed out. Please try again.';
       } else if (e is SocketException) {
         errorMessage = '❌ Network error. Please check your internet connection.';
-      } else if (e is HttpException) {
+      } else if (e is http.ClientException) {
         errorMessage = '❌ HTTP error while contacting server. Please try again or contact support.';
       }
       
