@@ -55,9 +55,20 @@ class QuickTestButton extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('Connection error: $e');
+      
+      // Provide more specific error messages without exposing sensitive details
+      String errorMessage = '❌ Cannot reach server. Please check your connection.';
+      if (e.toString().contains('TimeoutException')) {
+        errorMessage = '❌ Server request timed out. Please try again.';
+      } else if (e.toString().contains('SocketException')) {
+        errorMessage = '❌ Network error. Please check your internet connection.';
+      } else if (e.toString().contains('FormatException')) {
+        errorMessage = '❌ Invalid server response. Please contact support.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Cannot reach server. Please check your connection.'),
+        SnackBar(
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 4),
         ),
