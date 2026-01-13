@@ -16,5 +16,6 @@ export 'user_avatar.dart';
 export 'search_bar_widget.dart';
 export 'status_badge.dart';
 export 'custom_text_field.dart';
+export 'custom_button.dart';
 export 'info_card.dart';
 export 'notification_bell.dart';
