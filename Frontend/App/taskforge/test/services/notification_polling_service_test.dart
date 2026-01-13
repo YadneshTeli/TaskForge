@@ -1,5 +1,4 @@
 // Frontend/App/taskforge/test/services/notification_polling_service_test.dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskforge/services/notification_polling_service.dart';
 import 'package:taskforge/models/notification.dart';

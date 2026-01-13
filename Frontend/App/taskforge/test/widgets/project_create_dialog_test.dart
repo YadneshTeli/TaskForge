@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskforge/widgets/project_create_dialog.dart';
-import 'package:taskforge/models/project.dart';
 
 void main() {
   group('ProjectCreateDialog', () {
