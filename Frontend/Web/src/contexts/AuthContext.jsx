@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { AuthContext } from './AuthContext.js'
 import api from '@/lib/api'
 
@@ -6,34 +6,43 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     const token = localStorage.getItem('token')
-    if (token) {
-      // Verify token and get user info
-      api.get('/auth/me')
-        .then(response => {
-          setUser(response.data.user)
-        })
-        .catch(() => {
-          localStorage.removeItem('token')
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
-    } else {
+    if (!token) {
+      setUser(null)
+      setIsLoading(false)
+      return null
+    }
+    try {
+      const response = await api.get('/auth/me')
+      const loadedUser = response.data.user || response.data
+      setUser(loadedUser)
+      return loadedUser
+    } catch {
+      localStorage.removeItem('token')
+      setUser(null)
+      return null
+    } finally {
       setIsLoading(false)
     }
   }, [])
 
+  useEffect(() => {
+    refreshUser()
+  }, [refreshUser])
+
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password })
-      const { token, user } = response.data
+      const { token, user: loggedInUser } = response.data
       
       localStorage.setItem('token', token)
-      setUser(user)
-      
-      return { success: true, user }
+      if (loggedInUser) {
+        setUser(loggedInUser)
+        return { success: true, user: loggedInUser }
+      }
+      const fetchedUser = await refreshUser()
+      return { success: true, user: fetchedUser }
     } catch (error) {
       return { 
         success: false, 
@@ -45,12 +54,15 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData)
-      const { token, user } = response.data
+      const { token, user: registeredUser } = response.data
       
       localStorage.setItem('token', token)
-      setUser(user)
-      
-      return { success: true, user }
+      if (registeredUser) {
+        setUser(registeredUser)
+        return { success: true, user: registeredUser }
+      }
+      const fetchedUser = await refreshUser()
+      return { success: true, user: fetchedUser }
     } catch (error) {
       return { 
         success: false, 
@@ -60,12 +72,15 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
+    api.post('/auth/logout').catch(() => {})
     localStorage.removeItem('token')
     setUser(null)
   }
 
   const value = {
     user,
+    setUser,
+    refreshUser,
     isLoading,
     login,
     register,

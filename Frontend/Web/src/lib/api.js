@@ -1,7 +1,8 @@
 import axios from 'axios'
 
+/* global process */
 // Use process.env which works in both Vite (via define in vite.config) and Jest (via dotenv)
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:4000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,7 +31,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      if (typeof window !== 'undefined' && !['/login', '/signup'].includes(window.location.pathname)) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

@@ -1,29 +1,37 @@
 import * as React from "react"
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/components/ui/toast"
+import { useToast, toast } from "@/hooks/use-toast"
 
-const Toast = ({ children, ...props }) => {
+const Toaster = () => {
+  const { toasts } = useToast()
+
   return (
-    <div
-      className="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm"
-      {...props}
-    >
-      {children}
-    </div>
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props}>
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
+      <ToastViewport />
+    </ToastProvider>
   )
 }
 
-const Toaster = () => {
-  return null // We'll implement this later with a proper toast system
-}
-
-// Simple toast hook for basic notifications
-const useToast = () => {
-  return {
-    toast: ({ title, description, variant = 'default' }) => {
-      console.log('Toast:', { title, description, variant })
-      // This is a placeholder - in production you'd use a proper toast library
-    }
-  }
-}
-
-export { Toast, Toaster, useToast }
-
+// eslint-disable-next-line react-refresh/only-export-components
+export { Toast, Toaster, useToast, toast }
