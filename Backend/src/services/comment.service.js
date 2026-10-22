@@ -5,16 +5,23 @@ import Comment from '../models/comment.model.js';
 
 class CommentService {
     async createComment(commentData) {
-        const comment = await Comment.create(commentData);
-        return await Comment.findById(comment._id).lean();
+        const normalized = {
+            ...commentData,
+            content: commentData.content || commentData.text
+        };
+        const comment = await Comment.create(normalized);
+        const saved = await Comment.findById(comment._id).lean();
+        return saved ? { ...saved, id: saved._id.toString(), text: saved.content } : null;
     }
 
     async getTaskComments(taskId) {
-        return await Comment.find({ taskId: taskId }).lean();
+        const comments = await Comment.find({ taskId: taskId }).sort({ createdAt: 1 }).lean();
+        return comments.map(c => ({ ...c, id: c._id.toString(), text: c.content }));
     }
 
     async getProjectComments(projectId) {
-        return await Comment.find({ projectId: projectId }).lean();
+        const comments = await Comment.find({ projectId: projectId }).sort({ createdAt: 1 }).lean();
+        return comments.map(c => ({ ...c, id: c._id.toString(), text: c.content }));
     }
 
     async deleteComment(commentId) {
@@ -32,17 +39,25 @@ class CommentService {
             if (existingReaction.reaction === reaction) {
                 // Remove reaction
                 comment.reactedBy = comment.reactedBy.filter(r => r.userId !== userId);
-                comment.reactions[reaction]--;
+                if (comment.reactions[reaction] !== undefined) {
+                    comment.reactions[reaction] = Math.max(0, comment.reactions[reaction] - 1);
+                }
             } else {
                 // Change reaction
-                comment.reactions[existingReaction.reaction]--;
-                comment.reactions[reaction]++;
+                if (comment.reactions[existingReaction.reaction] !== undefined) {
+                    comment.reactions[existingReaction.reaction] = Math.max(0, comment.reactions[existingReaction.reaction] - 1);
+                }
+                if (comment.reactions[reaction] !== undefined) {
+                    comment.reactions[reaction]++;
+                }
                 existingReaction.reaction = reaction;
             }
         } else {
             // Add new reaction
             comment.reactedBy.push({ userId, reaction });
-            comment.reactions[reaction]++;
+            if (comment.reactions[reaction] !== undefined) {
+                comment.reactions[reaction]++;
+            }
         }
         
         await comment.save();
@@ -52,7 +67,7 @@ class CommentService {
     // Legacy methods for backward compatibility
     async addComment(taskId, content, authorId, projectId = null) {
         const commentData = {
-            text: content,
+            content: content,
             author: authorId,
             taskId: taskId,
             projectId: projectId

@@ -1,6 +1,10 @@
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import cloudinary from '../config/cloudinary.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Service for handling file uploads
 export default {
@@ -11,6 +15,13 @@ export default {
      */
     async uploadFile(file) {
         try {
+            if (
+                !process.env.CLOUDINARY_CLOUD_NAME ||
+                process.env.CLOUDINARY_CLOUD_NAME === 'your_cloud_name'
+            ) {
+                throw new Error('Cloudinary not configured, using local storage fallback');
+            }
+
             // Upload to Cloudinary using buffer
             const result = await new Promise((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
@@ -29,9 +40,9 @@ export default {
             
             return result.secure_url;
         } catch (error) {
-            console.error('Cloudinary upload error:', error);
+            console.warn('Using local upload fallback:', error.message);
             
-            // Fallback to local storage if Cloudinary fails
+            // Fallback to local storage if Cloudinary fails or is unconfigured
             const uploadsDir = path.join(__dirname, '../../uploads');
             if (!fs.existsSync(uploadsDir)) {
                 fs.mkdirSync(uploadsDir, { recursive: true });

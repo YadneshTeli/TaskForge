@@ -25,7 +25,7 @@ const USER_SELECT = {
     username: true,
     email: true,
     fullName: true,
-    avatar: true
+    profilePicture: true
 };
 
 const PROJECT_ANALYTICS_SELECT = {

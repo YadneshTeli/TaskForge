@@ -6,42 +6,54 @@ import projectService from '../services/project.service.js';
 import uploadService from '../services/upload.service.js';
 import reportService from '../services/report.service.js';
 import notificationService from '../services/notification.service.js';
+import commentService from '../services/comment.service.js';
 import { protect } from "../middleware/auth.middleware.js";
 import asyncHandler from '../utils/asyncHandler.js';
 import { body, validationResult } from 'express-validator';
-import helmet from 'helmet';
-import xss from 'xss-clean';
-import rateLimit from '../middleware/rateLimit.middleware.js';
 import { permissions } from '../config/roles.js';
 
-router.use(helmet());
-router.use(xss());
-router.use(rateLimit);
-
-// Error handling middleware
-router.use((err, req, res, next) => {
-    if (err) {
-        res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
-    } else {
+// Role-based access control middleware
+function checkRolesFor(action) {
+    return (req, res, next) => {
+        const userRole = req.user?.role ? String(req.user.role).toLowerCase() : null;
+        if (!userRole || !permissions[action]?.includes(userRole)) {
+            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
+        }
         next();
-    }
-});
+    };
+}
 
-// Create a new project
-router.post("/create", protect, asyncHandler(async (req, res) => {
+// Create a new project (POST / or POST /create)
+const handleCreateProject = asyncHandler(async (req, res) => {
     const projectData = {
         ...req.body,
         owner: req.user.id
     };
     const project = await projectService.createProject(projectData);
     res.status(201).json(project);
-}));
+});
 
-// Get all projects for the logged-in user
-router.get("/all", protect, asyncHandler(async (req, res) => {
-    const projects = await projectService.getUserProjects(req.user.id);
+router.post("/", protect, handleCreateProject);
+router.post("/create", protect, handleCreateProject);
+
+// Get all projects for the logged-in user (GET / or GET /all)
+const handleGetAllProjects = asyncHandler(async (req, res) => {
+    const projects = await projectService.getUserProjects(req.user.id, req.query);
     res.json(projects);
-}));
+});
+
+router.get("/", protect, handleGetAllProjects);
+router.get("/all", protect, handleGetAllProjects);
+
+// Dashboard overview for viewer/all roles
+router.get('/dashboard',
+    protect,
+    checkRolesFor('viewDashboard'),
+    asyncHandler(async (req, res) => {
+        const projects = await projectService.getUserProjects(req.user.id);
+        res.json(projects);
+    })
+);
 
 // Get project by ID
 router.get("/:id", protect, asyncHandler(async (req, res) => {
@@ -67,6 +79,24 @@ router.put("/:id", protect, asyncHandler(async (req, res) => {
     res.json(project);
 }));
 
+// Archive project
+router.patch("/:id/archive", protect, asyncHandler(async (req, res) => {
+    const project = await projectService.updateProject(req.params.id, {
+        status: 'archived',
+        archivedAt: new Date()
+    });
+    res.json(project);
+}));
+
+// Restore archived project
+router.patch("/:id/restore", protect, asyncHandler(async (req, res) => {
+    const project = await projectService.updateProject(req.params.id, {
+        status: 'active',
+        archivedAt: null
+    });
+    res.json(project);
+}));
+
 // Delete project
 router.delete("/:id", protect, asyncHandler(async (req, res) => {
     const success = await projectService.deleteProject(req.params.id);
@@ -76,31 +106,26 @@ router.delete("/:id", protect, asyncHandler(async (req, res) => {
     res.json({ message: "Project deleted successfully" });
 }));
 
-// Add member to project
-router.post("/:id/members", protect, asyncHandler(async (req, res) => {
+// Add member to project (supports /members and /member)
+const handleAddMember = asyncHandler(async (req, res) => {
     const { userId } = req.body;
-    const project = await projectService.addMemberToProject(req.params.id, userId);
+    const project = await projectService.addMemberToProject(req.params.id, parseInt(userId, 10));
     res.json(project);
-}));
+});
+router.post("/:id/members", protect, handleAddMember);
+router.post("/:id/member", protect, handleAddMember);
 
-// Remove member from project
-router.delete("/:id/members/:userId", protect, asyncHandler(async (req, res) => {
-    const project = await projectService.removeMemberFromProject(req.params.id, req.params.userId);
+// Remove member from project (supports /members/:userId and /member/:userId)
+const handleRemoveMember = asyncHandler(async (req, res) => {
+    const project = await projectService.removeMemberFromProject(req.params.id, parseInt(req.params.userId, 10));
     res.json(project);
-}));
-
-// Role-based access control middleware
-function checkRolesFor(action) {
-    return (req, res, next) => {
-        if (!req.user || !permissions[action].includes(req.user.role)) {
-            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
-        }
-        next();
-    };
-}
+});
+router.delete("/:id/members/:userId", protect, handleRemoveMember);
+router.delete("/:id/member/:userId", protect, handleRemoveMember);
 
 // Upload project file (admin or manager)
-router.post('/project/:id/upload',
+const handleUploadProjectFile = [
+    protect,
     checkRolesFor('upload'),
     upload.single('file'),
     asyncHandler(async (req, res) => {
@@ -125,10 +150,13 @@ router.post('/project/:id/upload',
             filename: req.file.originalname
         });
     })
-);
+];
+router.post('/:id/upload', ...handleUploadProjectFile);
+router.post('/project/:id/upload', ...handleUploadProjectFile);
 
 // Generate project report (admin or manager)
-router.post('/project/:id/report',
+const handleGenerateProjectReport = [
+    protect,
     checkRolesFor('report'),
     body('format').optional().isIn(['pdf', 'csv']).withMessage('Format must be pdf or csv'),
     asyncHandler(async (req, res) => {
@@ -155,10 +183,13 @@ router.post('/project/:id/report',
             format
         });
     })
-);
+];
+router.post('/:id/report', ...handleGenerateProjectReport);
+router.post('/project/:id/report', ...handleGenerateProjectReport);
 
 // Notify project user (admin, manager, or user)
-router.post('/project/:id/notify',
+const handleNotifyProjectUser = [
+    protect,
     checkRolesFor('notify'),
     body('userId').notEmpty().withMessage('User ID is required'),
     body('content').notEmpty().withMessage('Content is required'),
@@ -178,29 +209,31 @@ router.post('/project/:id/notify',
         }
         
         // Create notification
-        const notification = await notificationService.createNotification(content, userId);
+        const notification = await notificationService.createNotification(content, userId, { projectId });
         
         res.status(201).json({ 
             message: 'Notification sent successfully',
             notification
         });
     })
-);
+];
+router.post('/:id/notify', ...handleNotifyProjectUser);
+router.post('/project/:id/notify', ...handleNotifyProjectUser);
 
-// Only user and manager can add comments
-router.post('/project/:id/comment',
+// Add project comment
+const handleAddProjectComment = [
+    protect,
     checkRolesFor('addComment'),
-    (req, res, next) => {
-        // ...existing add comment logic...
-    }
-);
-
-// Only viewer can view dashboard
-router.get('/dashboard',
-    checkRolesFor('viewDashboard'),
-    (req, res, next) => {
-        // ...existing dashboard logic...
-    }
-);
+    asyncHandler(async (req, res) => {
+        const comment = await commentService.createComment({
+            content: req.body.content || req.body.text,
+            projectId: req.params.id,
+            author: req.user.id
+        });
+        res.status(201).json(comment);
+    })
+];
+router.post('/:id/comment', ...handleAddProjectComment);
+router.post('/project/:id/comment', ...handleAddProjectComment);
 
 export default router;
