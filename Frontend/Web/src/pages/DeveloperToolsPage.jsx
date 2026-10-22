@@ -17,7 +17,7 @@ import ConnectionTestDialog from '@/components/ConnectionTestDialog'
 
 const DeveloperToolsPage = () => {
   const envVars = {
-    'VITE_API_URL': import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    'VITE_API_URL': import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
     'MODE': import.meta.env.MODE,
     'BASE_URL': import.meta.env.BASE_URL,
     'PROD': import.meta.env.PROD,

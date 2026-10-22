@@ -8,10 +8,7 @@ import TutorialIntroStep from './TutorialIntroStep'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import axios from 'axios'
-
-/* global process */
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import api from '@/lib/api'
 
 export default function OnboardingWizard() {
   const navigate = useNavigate()
@@ -64,32 +61,18 @@ export default function OnboardingWizard() {
   const handleComplete = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      
       // Complete onboarding on backend
-      await axios.post(
-        `${API_BASE_URL}/users/complete-onboarding`,
-        {
-          role: onboardingData.role,
-          teamName: onboardingData.teamName,
-          preferences: onboardingData.preferences
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.post('/users/complete-onboarding', {
+        role: onboardingData.role,
+        teamName: onboardingData.teamName,
+        preferences: onboardingData.preferences
+      })
 
       // Send invites if any
       if (onboardingData.invites.length > 0) {
         await Promise.all(
           onboardingData.invites.map((invite) =>
-            axios.post(
-              `${API_BASE_URL}/users/invite`,
-              invite,
-              {
-                headers: { Authorization: `Bearer ${token}` }
-              }
-            )
+            api.post('/users/invite', invite)
           )
         )
       }

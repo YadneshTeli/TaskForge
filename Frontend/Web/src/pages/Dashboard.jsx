@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageLoader } from '@/components/ui/loading'
 import { useToast } from '@/components/ui/toaster'
@@ -9,12 +10,12 @@ import {
   Clock, 
   Users, 
   TrendingUp,
-  AlertCircle,
   Calendar,
   BarChart3
 } from 'lucide-react'
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalTasks: 0,
     activeProjects: 0,
@@ -28,6 +29,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboardData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadDashboardData = async () => {
@@ -54,11 +56,17 @@ const Dashboard = () => {
         }
       }
 
-      // Calculate stats
+      // Calculate stats (supports both 'in-progress'/'done' and legacy 'in progress'/'completed')
       const totalTasks = allTasks.length
       const activeProjects = projectsList.filter(p => p.status?.toLowerCase() === 'active').length
-      const pendingTasks = allTasks.filter(t => t.status?.toLowerCase() === 'todo' || t.status?.toLowerCase() === 'in progress').length
-      const completedTasks = allTasks.filter(t => t.status?.toLowerCase() === 'completed').length
+      const pendingTasks = allTasks.filter(t => {
+        const s = t.status?.toLowerCase()
+        return s === 'todo' || s === 'in-progress' || s === 'in progress' || s === 'in_progress'
+      }).length
+      const completedTasks = allTasks.filter(t => {
+        const s = t.status?.toLowerCase()
+        return s === 'done' || s === 'completed'
+      }).length
       const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
       setStats({
@@ -88,6 +96,7 @@ const Dashboard = () => {
   const getPriorityColor = (priority) => {
     const priorityLower = priority?.toLowerCase() || ''
     switch (priorityLower) {
+      case 'urgent':
       case 'high': return 'text-red-600 bg-red-100'
       case 'medium': return 'text-yellow-600 bg-yellow-100'
       case 'low': return 'text-green-600 bg-green-100'
@@ -98,7 +107,10 @@ const Dashboard = () => {
   const getStatusColor = (status) => {
     const statusLower = status?.toLowerCase() || ''
     switch (statusLower) {
+      case 'done':
       case 'completed': return 'text-green-600 bg-green-100'
+      case 'in-progress':
+      case 'in_progress':
       case 'in progress': return 'text-blue-600 bg-blue-100'
       case 'todo': return 'text-gray-600 bg-gray-100'
       default: return 'text-gray-600 bg-gray-100'
@@ -148,7 +160,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div data-tour="stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((stat) => {
           const Icon = stat.icon
           return (
@@ -169,7 +181,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Tasks */}
-        <div className="lg:col-span-2">
+        <div data-tour="recent-tasks" className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Recent Tasks</CardTitle>
@@ -179,62 +191,12 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentTasks.map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{task.title}</h4>
-                      <p className="text-sm text-gray-500">{task.project}</p>
-                      <p className="text-xs text-gray-400">Due: {task.dueDate}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
-                        {task.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions & Alerts */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <button className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                <CheckSquare className="h-4 w-4" />
-                <span>Create Task</span>
-              </button>
-              <button className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                <Users className="h-4 w-4" />
-                <span>New Project</span>
-              </button>
-              <button className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                <BarChart3 className="h-4 w-4" />
-                <span>View Reports</span>
-              </button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Alerts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
                 {recentTasks.length > 0 ? (
                   recentTasks.map((task) => (
-                    <div key={task._id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={task._id || task.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">{task.title}</h4>
-                        <p className="text-sm text-gray-500">{task.projectName}</p>
+                        <p className="text-sm text-gray-500">{task.projectName || task.project}</p>
                         <p className="text-xs text-gray-400">
                           Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
                         </p>
@@ -260,29 +222,29 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Quick Actions & Alerts */}
-        <div className="space-y-6">
+        {/* Quick Actions & Project Summary */}
+        <div data-tour="quick-actions" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <button 
-                onClick={() => window.location.href = '/tasks'}
+                onClick={() => navigate('/tasks')}
                 className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <CheckSquare className="h-4 w-4" />
                 <span>Create Task</span>
               </button>
               <button 
-                onClick={() => window.location.href = '/projects'}
+                onClick={() => navigate('/projects')}
                 className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Users className="h-4 w-4" />
                 <span>New Project</span>
               </button>
               <button 
-                onClick={() => window.location.href = '/reports'}
+                onClick={() => navigate('/reports')}
                 className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
               >
                 <BarChart3 className="h-4 w-4" />
@@ -298,12 +260,12 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-3">
                 {projects.slice(0, 3).map(project => (
-                  <div key={project._id} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                  <div key={project._id || project.id} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
                     <Users className="h-5 w-5 text-blue-600 mt-0.5" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{project.name}</p>
                       <p className="text-xs text-gray-600">
-                        {project.members?.length || 0} members • {project.stats?.totalTasks || 0} tasks
+                        {project.members?.length || 0} members • {project.stats?.taskCount ?? project.stats?.totalTasks ?? 0} tasks
                       </p>
                     </div>
                   </div>

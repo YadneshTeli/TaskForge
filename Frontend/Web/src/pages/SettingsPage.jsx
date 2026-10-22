@@ -8,10 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Save, User, Lock, Bell, Palette, Shield, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import axios from 'axios'
-
-/* global process */
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import api from '@/lib/api'
 
 export default function SettingsPage() {
   const { toast } = useToast()
@@ -38,16 +35,12 @@ export default function SettingsPage() {
   useEffect(() => {
     loadSettings()
     loadProfile()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadSettings = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get(`${API_BASE_URL}/users/settings`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setSettings({ ...settings, ...response.data.settings })
+      const response = await api.get('/users/settings')
+      setSettings((prev) => ({ ...prev, ...(response.data.settings || {}) }))
     } catch {
       console.error('Failed to load settings')
     }
@@ -55,10 +48,7 @@ export default function SettingsPage() {
 
   const loadProfile = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get(`${API_BASE_URL}/users/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await api.get('/users/profile')
       setProfileData({
         username: response.data.username || '',
         email: response.data.email || '',
@@ -72,14 +62,7 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(
-        `${API_BASE_URL}/users/settings`,
-        settings,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.put('/users/settings', settings)
       toast({
         title: 'Settings saved',
         description: 'Your preferences have been updated successfully.'
@@ -98,16 +81,9 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(
-        `${API_BASE_URL}/users/profile`,
-        {
-          fullName: profileData.fullName
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.put('/users/profile', {
+        fullName: profileData.fullName
+      })
       toast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.'
@@ -135,17 +111,10 @@ export default function SettingsPage() {
 
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(
-        `${API_BASE_URL}/users/password`,
-        {
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.put('/users/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      })
       toast({
         title: 'Password changed',
         description: 'Your password has been updated successfully.'
@@ -169,18 +138,11 @@ export default function SettingsPage() {
   const handleSaveNotifications = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(
-        `${API_BASE_URL}/users/notification-preferences`,
-        {
-          email: settings.emailNotifications,
-          push: settings.pushNotifications,
-          inApp: settings.inAppNotifications
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.put('/users/notification-preferences', {
+        email: settings.emailNotifications,
+        push: settings.pushNotifications,
+        inApp: settings.inAppNotifications
+      })
       toast({
         title: 'Preferences saved',
         description: 'Your notification preferences have been updated.'

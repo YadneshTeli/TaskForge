@@ -7,13 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { 
   Users, UserPlus, Search, Mail, MoreVertical, 
-  Shield, Crown, User as UserIcon, Eye, Trash2, Edit
+  Shield, Crown, User as UserIcon, Eye
 } from 'lucide-react'
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+import api from '@/lib/api'
+import { useToast } from '@/components/ui/toaster'
 
 export default function TeamPage() {
+  const { toast } = useToast()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -35,7 +35,6 @@ export default function TeamPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
       const params = {
         page,
         limit: 20
@@ -49,13 +48,10 @@ export default function TeamPage() {
         params.search = searchQuery
       }
 
-      const response = await axios.get(`${API_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      })
+      const response = await api.get('/users', { params })
 
-      setUsers(response.data.users)
-      setTotalPages(response.data.pagination.totalPages)
+      setUsers(response.data.users || [])
+      setTotalPages(response.data.pagination?.totalPages || 1)
     } catch {
       console.error('Failed to load users')
     } finally {
@@ -76,21 +72,24 @@ export default function TeamPage() {
 
     try {
       setInviting(true)
-      const token = localStorage.getItem('token')
-      
-      await axios.post(`${API_URL}/users/invite`, {
+      await api.post('/users/invite', {
         email: inviteEmail,
         role: inviteRole
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       })
 
-      alert('Invitation sent successfully!')
+      toast({
+        title: 'Invitation Sent',
+        description: `Invitation sent to ${inviteEmail}`
+      })
       setShowInviteModal(false)
       setInviteEmail('')
       setInviteRole('member')
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send invitation')
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to send invitation',
+        variant: 'destructive'
+      })
     } finally {
       setInviting(false)
     }
@@ -162,9 +161,7 @@ export default function TeamPage() {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="user">User</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
               </SelectContent>
             </Select>
             <Button type="submit">Search</Button>

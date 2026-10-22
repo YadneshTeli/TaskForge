@@ -5,9 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Mail } from 'lucide-react'
-import axios from 'axios'
-
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import api from '@/lib/api'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -21,7 +19,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     try {
-      await axios.post(`${API_BASE_URL}/auth/forgot-password`, { email })
+      await api.post('/auth/forgot-password', { email })
       setSuccess(true)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset email. Please try again.')

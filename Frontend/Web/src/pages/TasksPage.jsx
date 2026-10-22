@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,9 +14,7 @@ import {
   Plus, 
   Search, 
   Filter, 
-  MoreVertical,
   Calendar,
-  User,
   Flag,
   CheckCircle2,
   Clock,
@@ -76,6 +74,8 @@ const TasksPage = () => {
           }
         }
         setTasks(allTasks)
+      } else {
+        setTasks([])
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load data')
@@ -89,10 +89,20 @@ const TasksPage = () => {
     }
   }
 
+  const normalizeStatus = (status) => {
+    const s = status?.toLowerCase()?.trim() || 'todo'
+    if (s === 'in progress' || s === 'in_progress') return 'in-progress'
+    if (s === 'completed') return 'done'
+    return s
+  }
+
   const handleCreateTask = async (e) => {
     e.preventDefault()
     try {
-      await TaskService.createTask(formData)
+      await TaskService.createTask({
+        ...formData,
+        status: normalizeStatus(formData.status)
+      })
       toast({
         title: 'Success',
         description: 'Task created successfully'
@@ -119,7 +129,10 @@ const TasksPage = () => {
   const handleUpdateTask = async (e) => {
     e.preventDefault()
     try {
-      await TaskService.updateTask(selectedTask._id, formData)
+      await TaskService.updateTask(selectedTask._id, {
+        ...formData,
+        status: normalizeStatus(formData.status)
+      })
       toast({
         title: 'Success',
         description: 'Task updated successfully'
@@ -159,10 +172,10 @@ const TasksPage = () => {
     setSelectedTask(task)
     setFormData({
       title: task.title,
-      description: task.description,
+      description: task.description || '',
       projectId: task.projectId,
-      priority: task.priority,
-      status: task.status,
+      priority: task.priority || 'medium',
+      status: normalizeStatus(task.status),
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
     })
     setIsEditDialogOpen(true)
@@ -171,6 +184,7 @@ const TasksPage = () => {
   const getPriorityColor = (priority) => {
     const priorityLower = priority?.toLowerCase() || ''
     switch (priorityLower) {
+      case 'urgent':
       case 'high': return 'text-red-600 bg-red-100'
       case 'medium': return 'text-yellow-600 bg-yellow-100'
       case 'low': return 'text-green-600 bg-green-100'
@@ -179,20 +193,20 @@ const TasksPage = () => {
   }
 
   const getStatusColor = (status) => {
-    const statusLower = status?.toLowerCase() || ''
+    const statusLower = normalizeStatus(status)
     switch (statusLower) {
-      case 'completed': return 'text-green-600 bg-green-100'
-      case 'in progress': return 'text-blue-600 bg-blue-100'
+      case 'done': return 'text-green-600 bg-green-100'
+      case 'in-progress': return 'text-blue-600 bg-blue-100'
       case 'todo': return 'text-gray-600 bg-gray-100'
       default: return 'text-gray-600 bg-gray-100'
     }
   }
 
   const getStatusIcon = (status) => {
-    const statusLower = status?.toLowerCase() || ''
+    const statusLower = normalizeStatus(status)
     switch (statusLower) {
-      case 'completed': return CheckCircle2
-      case 'in progress': return Clock
+      case 'done': return CheckCircle2
+      case 'in-progress': return Clock
       case 'todo': return AlertCircle
       default: return Clock
     }
@@ -201,15 +215,15 @@ const TasksPage = () => {
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = selectedFilter === 'all' || task.status?.toLowerCase() === selectedFilter
+    const matchesFilter = selectedFilter === 'all' || normalizeStatus(task.status) === normalizeStatus(selectedFilter)
     return matchesSearch && matchesFilter
   })
 
   const filterOptions = [
     { value: 'all', label: 'All Tasks' },
     { value: 'todo', label: 'Todo' },
-    { value: 'in progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' }
+    { value: 'in-progress', label: 'In Progress' },
+    { value: 'done', label: 'Completed' }
   ]
 
   if (isLoading) {
@@ -237,7 +251,7 @@ const TasksPage = () => {
         {/* Create Task Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
+            <Button data-tour="create-task" className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
               <span>New Task</span>
             </Button>
@@ -314,8 +328,8 @@ const TasksPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todo">Todo</SelectItem>
-                      <SelectItem value="in progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="done">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -395,8 +409,8 @@ const TasksPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todo">Todo</SelectItem>
-                      <SelectItem value="in progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="done">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -432,7 +446,7 @@ const TasksPage = () => {
             className="pl-10"
           />
         </div>
-        <div className="flex items-center space-x-2">
+        <div data-tour="task-filters" className="flex items-center space-x-2">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
             value={selectedFilter}
@@ -453,7 +467,7 @@ const TasksPage = () => {
         {filteredTasks.map((task) => {
           const StatusIcon = getStatusIcon(task.status)
           return (
-            <Card key={task._id} className="hover:shadow-md transition-shadow">
+            <Card key={task._id || task.id} data-tour="task-item" className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4 flex-1">
@@ -465,10 +479,10 @@ const TasksPage = () => {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {task.title}
                         </h3>
-                        <span className={`px-2 py-1 text-xs rounded-full capitalize ${getPriorityColor(task.priority)}`}>
+                        <span data-tour="task-priority" className={`px-2 py-1 text-xs rounded-full capitalize ${getPriorityColor(task.priority)}`}>
                           {task.priority}
                         </span>
-                        <span className={`px-2 py-1 text-xs rounded-full capitalize ${getStatusColor(task.status)}`}>
+                        <span data-tour="task-status" className={`px-2 py-1 text-xs rounded-full capitalize ${getStatusColor(task.status)}`}>
                           {task.status}
                         </span>
                       </div>
@@ -525,7 +539,7 @@ const TasksPage = () => {
             }
           </p>
           {!searchTerm && selectedFilter === 'all' && (
-            <Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Task
             </Button>

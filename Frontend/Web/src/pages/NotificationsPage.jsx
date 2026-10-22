@@ -4,10 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Bell, CheckCheck, Trash2, Loader2, Inbox } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import axios from 'axios'
-
-/* global process */
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import api from '@/lib/api'
 
 export default function NotificationsPage() {
   const { toast } = useToast()
@@ -24,11 +21,18 @@ export default function NotificationsPage() {
 
   const loadNotifications = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get(`${API_BASE_URL}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setNotifications(response.data.notifications || [])
+      const response = await api.get('/notifications')
+      const rawList = Array.isArray(response.data)
+        ? response.data
+        : (response.data.notifications || [])
+      setNotifications(
+        rawList.map((n) => ({
+          ...n,
+          id: n.id ?? n._id,
+          title: n.title || (n.type ? n.type.replace(/_/g, ' ').toUpperCase() : 'Notification'),
+          message: n.message || n.content || ''
+        }))
+      )
     } catch {
       console.error('Failed to load notifications')
     } finally {
@@ -38,14 +42,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id) => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(
-        `${API_BASE_URL}/notifications/${id}/seen`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.put(`/notifications/${id}/seen`, {})
       setNotifications((prev) =>
         prev.map((notif) => (notif.id === id ? { ...notif, seen: true } : notif))
       )
@@ -60,14 +57,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.put(
-        `${API_BASE_URL}/notifications/mark-all-read`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      await api.put('/notifications/mark-all-read', {})
       setNotifications((prev) => prev.map((notif) => ({ ...notif, seen: true })))
       toast({
         title: 'Success',
@@ -84,10 +74,7 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (id) => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.delete(`${API_BASE_URL}/notifications/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.delete(`/notifications/${id}`)
       setNotifications((prev) => prev.filter((notif) => notif.id !== id))
       toast({
         title: 'Deleted',

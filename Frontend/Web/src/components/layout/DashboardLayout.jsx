@@ -8,6 +8,9 @@ import {
   CheckSquare, 
   BarChart3, 
   User, 
+  Users,
+  Settings,
+  Wrench,
   LogOut, 
   Menu, 
   X,
@@ -15,11 +18,17 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Projects', href: '/projects', icon: FolderOpen },
-  { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Profile', href: '/profile', icon: User },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, tour: 'nav-dashboard' },
+  { name: 'Projects', href: '/projects', icon: FolderOpen, tour: 'nav-projects' },
+  { name: 'Tasks', href: '/tasks', icon: CheckSquare, tour: 'nav-tasks' },
+  { name: 'Team', href: '/team', icon: Users, tour: 'nav-team' },
+  { name: 'Reports', href: '/reports', icon: BarChart3, tour: 'nav-reports' },
+  { name: 'Notifications', href: '/notifications', icon: Bell, tour: 'nav-notifications' },
+  { name: 'Profile', href: '/profile', icon: User, tour: 'nav-profile' },
+  { name: 'Settings', href: '/settings', icon: Settings, tour: 'nav-settings' },
+  ...(import.meta.env.MODE === 'development'
+    ? [{ name: 'Dev Tools', href: '/dev-tools', icon: Wrench, tour: 'nav-dev' }]
+    : []),
 ]
 
 const DashboardLayout = ({ children }) => {
@@ -28,6 +37,14 @@ const DashboardLayout = ({ children }) => {
   const location = useLocation()
 
   const isActive = (href) => location.pathname === href
+
+  const displayName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'User'
+  const initials = displayName
+    .split(' ')
+    .map(p => p[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -48,6 +65,7 @@ const DashboardLayout = ({ children }) => {
                 <Link
                   key={item.name}
                   to={item.href}
+                  data-tour={item.tour}
                   className={`flex items-center px-4 py-3 text-sm font-medium ${
                     isActive(item.href)
                       ? 'text-blue-600 bg-blue-50 border-r-2 border-blue-600'
@@ -77,6 +95,7 @@ const DashboardLayout = ({ children }) => {
                 <Link
                   key={item.name}
                   to={item.href}
+                  data-tour={item.tour}
                   className={`flex items-center px-4 py-3 text-sm font-medium ${
                     isActive(item.href)
                       ? 'text-blue-600 bg-blue-50 border-r-2 border-blue-600'
@@ -104,26 +123,30 @@ const DashboardLayout = ({ children }) => {
               <Menu className="h-6 w-6 text-gray-400" />
             </button>
 
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
+            <div className="flex-1 lg:flex-none" />
+
+            <div data-tour="user-menu" className="flex items-center space-x-4">
+              <Link to="/notifications">
+                <Button variant="ghost" size="icon">
+                  <Bell className="h-5 w-5" />
+                </Button>
+              </Link>
               
-              <div className="flex items-center space-x-3">
+              <Link to="/profile" className="flex items-center space-x-3">
                 <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full">
                   <span className="text-sm font-medium text-white">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    {initials}
                   </span>
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-gray-900">
-                    {user?.firstName} {user?.lastName}
+                    {displayName}
                   </p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
-              </div>
+              </Link>
 
-              <Button variant="ghost" size="icon" onClick={logout}>
+              <Button variant="ghost" size="icon" onClick={logout} title="Logout">
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>

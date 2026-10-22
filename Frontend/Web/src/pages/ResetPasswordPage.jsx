@@ -5,10 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2 } from 'lucide-react'
-import axios from 'axios'
-
-/* global process */
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import api from '@/lib/api'
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
@@ -49,7 +46,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
     try {
-      await axios.post(`${API_BASE_URL}/auth/reset-password`, {
+      await api.post('/auth/reset-password', {
         token,
         password: formData.password
       })

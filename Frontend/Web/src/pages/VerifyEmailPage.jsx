@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react'
-import axios from 'axios'
-
-/* global process */
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import api from '@/lib/api'
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate()
@@ -20,7 +19,7 @@ export default function VerifyEmailPage() {
 
   const verifyEmail = async (verificationToken) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/verify-email`, {
+      const response = await api.post('/auth/verify-email', {
         token: verificationToken
       })
 
@@ -66,7 +65,7 @@ export default function VerifyEmailPage() {
 
     setResending(true)
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/resend-verification`, {
+      const response = await api.post('/auth/resend-verification', {
         email: email
       })
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +13,6 @@ import {
   Plus, 
   Search, 
   Filter, 
-  MoreVertical,
   Users,
   Calendar,
   CheckCircle,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 
 const ProjectsPage = () => {
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [projects, setProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -125,8 +126,8 @@ const ProjectsPage = () => {
     setSelectedProject(project)
     setFormData({
       name: project.name,
-      description: project.description,
-      status: project.status
+      description: project.description || '',
+      status: project.status || 'active'
     })
     setIsEditDialogOpen(true)
   }
@@ -173,7 +174,7 @@ const ProjectsPage = () => {
         {/* Create Project Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
+            <Button data-tour="create-project" className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
               <span>New Project</span>
             </Button>
@@ -259,7 +260,7 @@ const ProjectsPage = () => {
 
       {/* Search and Filter Bar */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1 relative">
+        <div data-tour="project-search" className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search projects..."
@@ -268,22 +269,24 @@ const ProjectsPage = () => {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" className="flex items-center space-x-2">
+        <Button data-tour="project-filters" variant="outline" className="flex items-center space-x-2">
           <Filter className="h-4 w-4" />
           <span>Filter</span>
         </Button>
       </div>
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div data-tour="project-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.map((project) => {
           const stats = project.stats || {}
-          const progress = stats.totalTasks > 0 
-            ? Math.round((stats.completedTasks / stats.totalTasks) * 100) 
+          const totalTasks = stats.taskCount ?? stats.totalTasks ?? 0
+          const completedTasks = stats.completedTasks ?? 0
+          const progress = totalTasks > 0 
+            ? Math.round((completedTasks / totalTasks) * 100) 
             : 0
           
           return (
-            <Card key={project._id} className="hover:shadow-lg transition-shadow">
+            <Card key={project._id || project.id} data-tour="project-card" className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -331,7 +334,7 @@ const ProjectsPage = () => {
 
                 {/* Project Stats */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center space-x-2">
+                  <div data-tour="project-members" className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-gray-400" />
                     <span className="text-gray-600">{project.members?.length || 0} members</span>
                   </div>
@@ -343,18 +346,18 @@ const ProjectsPage = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">{stats.completedTasks || 0} completed</span>
+                    <span className="text-gray-600">{completedTasks} completed</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">{stats.totalTasks || 0} total</span>
+                    <span className="text-gray-600">{totalTasks} total</span>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex space-x-2 pt-2">
-                  <Button size="sm" className="flex-1">
-                    View Details
+                  <Button size="sm" className="flex-1" onClick={() => navigate('/tasks')}>
+                    View Tasks
                   </Button>
                   <Button 
                     size="sm" 
@@ -381,7 +384,7 @@ const ProjectsPage = () => {
             {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first project'}
           </p>
           {!searchTerm && (
-            <Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Project
             </Button>

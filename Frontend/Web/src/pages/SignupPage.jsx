@@ -4,13 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import axios from 'axios'
-
-/* global process */
-const API_BASE_URL = process.env.VITE_API_URL || 'http://10.72.125.97:4000/api'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function SignupPage() {
   const navigate = useNavigate()
+  const { register } = useAuth()
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -60,15 +58,16 @@ export default function SignupPage() {
 
     setLoading(true)
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+      const result = await register({
         username: formData.username,
         email: formData.email,
         password: formData.password
       })
 
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token)
+      if (result.success) {
         navigate('/onboarding')
+      } else {
+        setApiError(result.error || 'Registration failed. Please try again.')
       }
     } catch (error) {
       setApiError(error.response?.data?.message || 'Registration failed. Please try again.')

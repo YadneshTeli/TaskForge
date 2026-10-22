@@ -175,7 +175,7 @@ const ConnectionTestDialog = ({ children }) => {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Backend URL:</span>
                   <span className="font-mono">
-                    {import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}
+                    {import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}
                   </span>
                 </div>
                 <div className="flex justify-between">
