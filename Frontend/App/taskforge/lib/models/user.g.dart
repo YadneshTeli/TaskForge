@@ -7,17 +7,21 @@ part of 'user.dart';
 // **************************************************************************
 
 User _$UserFromJson(Map<String, dynamic> json) => User(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      username: json['username'] as String,
-      role: json['role'] as String,
+      id: json['id'].toString(),
+      email: (json['email'] ?? '') as String,
+      username: (json['username'] ?? '') as String,
+      role: (json['role'] ?? 'USER') as String,
       fullName: json['fullName'] as String?,
       profilePicture: json['profilePicture'] as String?,
       bio: json['bio'] as String?,
-      isActive: json['isActive'] as bool,
-      isOnline: json['isOnline'] as bool,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      isActive: (json['isActive'] as bool?) ?? true,
+      isOnline: (json['isOnline'] as bool?) ?? false,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'].toString())
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'].toString())
+          : DateTime.now(),
     );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
@@ -35,20 +39,22 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
     };
 
 UserStats _$UserStatsFromJson(Map<String, dynamic> json) => UserStats(
-      id: (json['id'] as num).toInt(),
-      userId: (json['userId'] as num).toInt(),
-      totalTasksCreated: (json['totalTasksCreated'] as num).toInt(),
-      totalTasksCompleted: (json['totalTasksCompleted'] as num).toInt(),
-      totalTasksPending: (json['totalTasksPending'] as num).toInt(),
-      totalTasksOverdue: (json['totalTasksOverdue'] as num).toInt(),
-      totalTasksInProgress: (json['totalTasksInProgress'] as num).toInt(),
-      totalProjectsOwned: (json['totalProjectsOwned'] as num).toInt(),
-      totalProjectsJoined: (json['totalProjectsJoined'] as num).toInt(),
-      totalCommentsPosted: (json['totalCommentsPosted'] as num).toInt(),
-      totalTimeSpent: (json['totalTimeSpent'] as num).toInt(),
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      userId: (json['userId'] as num?)?.toInt() ?? 0,
+      totalTasksCreated: (json['totalTasksCreated'] as num?)?.toInt() ?? 0,
+      totalTasksCompleted: (json['totalTasksCompleted'] as num?)?.toInt() ?? 0,
+      totalTasksPending: (json['totalTasksPending'] as num?)?.toInt() ?? 0,
+      totalTasksOverdue: (json['totalTasksOverdue'] as num?)?.toInt() ?? 0,
+      totalTasksInProgress: (json['totalTasksInProgress'] as num?)?.toInt() ?? 0,
+      totalProjectsOwned: (json['totalProjectsOwned'] as num?)?.toInt() ?? 0,
+      totalProjectsJoined: (json['totalProjectsJoined'] as num?)?.toInt() ?? 0,
+      totalCommentsPosted: (json['totalCommentsPosted'] as num?)?.toInt() ?? 0,
+      totalTimeSpent: (json['totalTimeSpent'] as num?)?.toInt() ?? 0,
       avgTaskCompletionTime:
           (json['avgTaskCompletionTime'] as num?)?.toDouble(),
-      lastActivityAt: DateTime.parse(json['lastActivityAt'] as String),
+      lastActivityAt: json['lastActivityAt'] != null
+          ? DateTime.parse(json['lastActivityAt'].toString())
+          : DateTime.now(),
     );
 
 Map<String, dynamic> _$UserStatsToJson(UserStats instance) => <String, dynamic>{

@@ -2,10 +2,18 @@
 import '../api/rest_client.dart';
 
 class UserSettingsService {
+  static Future<void> _ensureClientReady() async {
+    await Future.microtask(() {});
+    if (RestClient.dio.options.baseUrl.isEmpty) {
+      throw Exception('RestClient not initialized');
+    }
+  }
+
   /// Get user settings
   static Future<Map<String, dynamic>> getSettings() async {
     try {
-      final response = await RestClient.dio.get('/api/user/settings');
+      await _ensureClientReady();
+      final response = await RestClient.dio.get('/users/settings');
       return response.data;
     } catch (e) {
       throw Exception('Failed to get settings: ${e.toString()}');
@@ -15,8 +23,9 @@ class UserSettingsService {
   /// Update user settings
   static Future<Map<String, dynamic>> updateSettings(Map<String, dynamic> settings) async {
     try {
+      await _ensureClientReady();
       final response = await RestClient.dio.put(
-        '/api/user/settings',
+        '/users/settings',
         data: settings,
       );
       return response.data;
@@ -28,7 +37,8 @@ class UserSettingsService {
   /// Get notification preferences
   static Future<Map<String, dynamic>> getNotificationPreferences() async {
     try {
-      final response = await RestClient.dio.get('/api/user/notification-preferences');
+      await _ensureClientReady();
+      final response = await RestClient.dio.get('/users/notification-preferences');
       return response.data;
     } catch (e) {
       throw Exception('Failed to get notification preferences: ${e.toString()}');
@@ -40,8 +50,9 @@ class UserSettingsService {
     Map<String, dynamic> preferences,
   ) async {
     try {
+      await _ensureClientReady();
       final response = await RestClient.dio.put(
-        '/api/user/notification-preferences',
+        '/users/notification-preferences',
         data: preferences,
       );
       return response.data;
@@ -53,7 +64,8 @@ class UserSettingsService {
   /// Get user statistics
   static Future<Map<String, dynamic>> getUserStats() async {
     try {
-      final response = await RestClient.dio.get('/api/user/stats');
+      await _ensureClientReady();
+      final response = await RestClient.dio.get('/users/stats');
       return response.data;
     } catch (e) {
       throw Exception('Failed to get user stats: ${e.toString()}');
@@ -63,7 +75,8 @@ class UserSettingsService {
   /// Get onboarding status
   static Future<Map<String, dynamic>> getOnboardingStatus() async {
     try {
-      final response = await RestClient.dio.get('/api/user/onboarding-status');
+      await _ensureClientReady();
+      final response = await RestClient.dio.get('/users/onboarding-status');
       return response.data;
     } catch (e) {
       throw Exception('Failed to get onboarding status: ${e.toString()}');
@@ -75,8 +88,9 @@ class UserSettingsService {
     Map<String, dynamic> data,
   ) async {
     try {
+      await _ensureClientReady();
       final response = await RestClient.dio.post(
-        '/api/user/complete-onboarding',
+        '/users/complete-onboarding',
         data: data,
       );
       return response.data;
@@ -88,8 +102,9 @@ class UserSettingsService {
   /// Search users
   static Future<List<dynamic>> searchUsers(String query) async {
     try {
+      await _ensureClientReady();
       final response = await RestClient.dio.get(
-        '/api/user/search',
+        '/users/search',
         queryParameters: {'q': query},
       );
       return response.data['users'] as List<dynamic>;
@@ -105,8 +120,9 @@ class UserSettingsService {
     String? projectId,
   }) async {
     try {
+      await _ensureClientReady();
       final response = await RestClient.dio.post(
-        '/api/user/invite',
+        '/users/invite',
         data: {
           'email': email,
           if (role != null) 'role': role,

@@ -1,4 +1,4 @@
-// test/blocs/task/task_bloc_test.dart
+// test/blocs/task/task_bloc_test_new.dart
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taskforge/blocs/task/task_bloc.dart';
@@ -28,22 +28,22 @@ void main() {
 
     group('LoadTasks', () {
       blocTest<TaskBloc, TaskState>(
-        'emits [TaskLoading] when loading tasks without GraphQL client',
+        'emits [TaskLoading, TaskError] when loading tasks without GraphQL client',
         build: () => taskBloc,
-        act: (bloc) => bloc.add(LoadTasks()),
+        act: (bloc) => bloc.add(const LoadTasks()),
         expect: () => [
           TaskLoading(),
-          // Will likely emit TaskError due to GraphQL client not initialized
+          isA<TaskError>(),
         ],
-        wait: const Duration(seconds: 2),
+        wait: const Duration(seconds: 1),
       );
     });
 
     group('CreateTask', () {
       blocTest<TaskBloc, TaskState>(
-        'emits [TaskLoading] when creating task',
+        'emits [TaskError] when creating task without GraphQL client',
         build: () => taskBloc,
-        act: (bloc) => bloc.add(CreateTask(
+        act: (bloc) => bloc.add(const CreateTask(
           input: CreateTaskInput(
             title: 'New Task',
             description: 'Task description',
@@ -53,18 +53,17 @@ void main() {
           ),
         )),
         expect: () => [
-          TaskLoading(),
-          // Will likely emit TaskError due to GraphQL client not initialized
+          isA<TaskError>(),
         ],
-        wait: const Duration(seconds: 2),
+        wait: const Duration(seconds: 1),
       );
     });
 
     group('UpdateTask', () {
       blocTest<TaskBloc, TaskState>(
-        'emits [TaskLoading] when updating task',
+        'emits [TaskError] when updating task without GraphQL client',
         build: () => taskBloc,
-        act: (bloc) => bloc.add(UpdateTask(
+        act: (bloc) => bloc.add(const UpdateTask(
           taskId: '1',
           updates: {
             'title': 'Updated Task',
@@ -73,23 +72,21 @@ void main() {
           },
         )),
         expect: () => [
-          TaskLoading(),
-          // Will likely emit TaskError due to GraphQL client not initialized
+          isA<TaskError>(),
         ],
-        wait: const Duration(seconds: 2),
+        wait: const Duration(seconds: 1),
       );
     });
 
     group('DeleteTask', () {
       blocTest<TaskBloc, TaskState>(
-        'emits [TaskLoading] when deleting task',
+        'emits [TaskError] when deleting task without GraphQL client',
         build: () => taskBloc,
-        act: (bloc) => bloc.add(DeleteTask(taskId: '1')),
+        act: (bloc) => bloc.add(const DeleteTask(taskId: '1')),
         expect: () => [
-          TaskLoading(),
-          // Will likely emit TaskError due to GraphQL client not initialized
+          isA<TaskError>(),
         ],
-        wait: const Duration(seconds: 2),
+        wait: const Duration(seconds: 1),
       );
     });
   });

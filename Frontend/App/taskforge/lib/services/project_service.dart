@@ -6,7 +6,7 @@ import '../api/rest_client.dart';
 import '../models/project.dart';
 
 class ProjectService {
-  static final GraphQLClient _graphQLClient = GQL.client.value;
+  static GraphQLClient get _graphQLClient => GQL.client.value;
 
   // GraphQL operations for main CRUD
   static Future<List<Project>> getProjects() async {
@@ -70,7 +70,11 @@ class ProjectService {
       throw Exception('Failed to delete project: ${result.exception.toString()}');
     }
 
-    return result.data?['deleteProject'] == true;
+    final deleteData = result.data?['deleteProject'];
+    if (deleteData is Map) {
+      return deleteData['success'] == true;
+    }
+    return deleteData == true;
   }
 
   // Analytics operations using GraphQL (Prisma data)

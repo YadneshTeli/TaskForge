@@ -48,6 +48,20 @@ class GQL {
   }
 }
 
+const String _userFields = '''
+  id
+  username
+  email
+  role
+  fullName
+  profilePicture
+  bio
+  isActive
+  isOnline
+  createdAt
+  updatedAt
+''';
+
 // GraphQL Queries
 class GraphQLQueries {
   static const String getTasks = '''
@@ -60,11 +74,7 @@ class GraphQLQueries {
         priority
         projectId
         assignedTo {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         dueDate
         createdAt
@@ -72,11 +82,7 @@ class GraphQLQueries {
         attachments
         comments {
           user {
-            id
-            username
-            email
-            firstName
-            lastName
+            $_userFields
           }
           text
           createdAt
@@ -91,19 +97,14 @@ class GraphQLQueries {
         id
         name
         description
+        status
+        dueDate
+        attachments
         owner {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         members {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         createdAt
         updatedAt
@@ -124,11 +125,7 @@ class GraphQLQueries {
         completedAt
         dueDate
         assignee {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
       }
     }
@@ -137,16 +134,19 @@ class GraphQLQueries {
   static const String getUserStats = '''
     query GetUserStats(\$userId: ID!) {
       userStats(userId: \$userId) {
+        id
         userId
-        totalTasks
-        completedTasks
-        pendingTasks
-        overdueTasks
-        averageCompletionTime
-        productivityScore
-        lastActiveAt
-        createdAt
-        updatedAt
+        totalTasksCreated
+        totalTasksCompleted
+        totalTasksPending
+        totalTasksOverdue
+        totalTasksInProgress
+        totalProjectsOwned
+        totalProjectsJoined
+        totalCommentsPosted
+        totalTimeSpent
+        avgTaskCompletionTime
+        lastActivityAt
       }
     }
   ''';
@@ -154,15 +154,18 @@ class GraphQLQueries {
   static const String getProjectAnalytics = '''
     query GetProjectAnalytics(\$projectId: ID!) {
       projectAnalytics(projectId: \$projectId) {
-        projectId
         totalTasks
         completedTasks
         pendingTasks
+        inProgressTasks
         overdueTasks
-        averageCompletionTime
-        teamProductivity
-        createdAt
-        updatedAt
+        totalMembers
+        totalComments
+        totalTimeSpent
+        avgTaskCompletionTime
+        productivityScore
+        completionRate
+        lastUpdated
       }
     }
   ''';
@@ -171,7 +174,7 @@ class GraphQLQueries {
 // GraphQL Mutations
 class GraphQLMutations {
   static const String createTask = '''
-    mutation CreateTask(\$input: CreateTaskInput!) {
+    mutation CreateTask(\$input: TaskInput!) {
       createTask(input: \$input) {
         id
         title
@@ -180,11 +183,7 @@ class GraphQLMutations {
         priority
         projectId
         assignedTo {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         dueDate
         createdAt
@@ -192,11 +191,7 @@ class GraphQLMutations {
         attachments
         comments {
           user {
-            id
-            username
-            email
-            firstName
-            lastName
+            $_userFields
           }
           text
           createdAt
@@ -206,7 +201,7 @@ class GraphQLMutations {
   ''';
 
   static const String updateTask = '''
-    mutation UpdateTask(\$id: ID!, \$input: UpdateTaskInput!) {
+    mutation UpdateTask(\$id: ID!, \$input: TaskInput!) {
       updateTask(id: \$id, input: \$input) {
         id
         title
@@ -215,11 +210,7 @@ class GraphQLMutations {
         priority
         projectId
         assignedTo {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         dueDate
         createdAt
@@ -227,11 +218,7 @@ class GraphQLMutations {
         attachments
         comments {
           user {
-            id
-            username
-            email
-            firstName
-            lastName
+            $_userFields
           }
           text
           createdAt
@@ -242,29 +229,27 @@ class GraphQLMutations {
 
   static const String deleteTask = '''
     mutation DeleteTask(\$id: ID!) {
-      deleteTask(id: \$id)
+      deleteTask(id: \$id) {
+        success
+        message
+      }
     }
   ''';
 
   static const String createProject = '''
-    mutation CreateProject(\$input: CreateProjectInput!) {
+    mutation CreateProject(\$input: ProjectInput!) {
       createProject(input: \$input) {
         id
         name
         description
+        status
+        dueDate
+        attachments
         owner {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         members {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         createdAt
         updatedAt
@@ -273,24 +258,19 @@ class GraphQLMutations {
   ''';
 
   static const String updateProject = '''
-    mutation UpdateProject(\$id: ID!, \$input: UpdateProjectInput!) {
+    mutation UpdateProject(\$id: ID!, \$input: ProjectInput!) {
       updateProject(id: \$id, input: \$input) {
         id
         name
         description
+        status
+        dueDate
+        attachments
         owner {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         members {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         createdAt
         updatedAt
@@ -300,7 +280,10 @@ class GraphQLMutations {
 
   static const String deleteProject = '''
     mutation DeleteProject(\$id: ID!) {
-      deleteProject(id: \$id)
+      deleteProject(id: \$id) {
+        success
+        message
+      }
     }
   ''';
 
@@ -314,11 +297,7 @@ class GraphQLMutations {
         priority
         projectId
         assignedTo {
-          id
-          username
-          email
-          firstName
-          lastName
+          $_userFields
         }
         dueDate
         createdAt
@@ -326,11 +305,7 @@ class GraphQLMutations {
         attachments
         comments {
           user {
-            id
-            username
-            email
-            firstName
-            lastName
+            $_userFields
           }
           text
           createdAt

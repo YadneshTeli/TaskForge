@@ -4,7 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/task/task_bloc.dart';
 import '../blocs/task/task_event.dart';
 import '../blocs/task/task_state.dart';
+import '../blocs/project/project_bloc.dart';
+import '../blocs/project/project_state.dart';
 import '../models/task.dart';
+import '../models/project.dart';
 import '../widgets/index.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -150,6 +153,12 @@ class _TasksScreenState extends State<TasksScreen> {
     final descriptionController = TextEditingController();
     TaskPriority selectedPriority = TaskPriority.medium;
     
+    final projectState = context.read<ProjectBloc>().state;
+    final List<Project> availableProjects =
+        projectState is ProjectLoaded ? projectState.projects : [];
+    String? selectedProjectId = widget.projectId ??
+        (availableProjects.isNotEmpty ? availableProjects.first.id : null);
+    
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -174,6 +183,27 @@ class _TasksScreenState extends State<TasksScreen> {
                 ),
                 maxLines: 3,
               ),
+              if (widget.projectId == null && availableProjects.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedProjectId,
+                  decoration: const InputDecoration(
+                    labelText: 'Project',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: availableProjects.map((project) {
+                    return DropdownMenuItem(
+                      value: project.id,
+                      child: Text(project.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => selectedProjectId = value);
+                    }
+                  },
+                ),
+              ],
               const SizedBox(height: 16),
               DropdownButtonFormField<TaskPriority>(
                 value: selectedPriority,
@@ -202,7 +232,7 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (titleController.text.trim().isNotEmpty) {
+                if (titleController.text.trim().isNotEmpty && selectedProjectId != null) {
                   final input = CreateTaskInput(
                     title: titleController.text.trim(),
                     description: descriptionController.text.trim().isEmpty 
@@ -210,10 +240,14 @@ class _TasksScreenState extends State<TasksScreen> {
                         : descriptionController.text.trim(),
                     status: TaskStatus.todo,
                     priority: selectedPriority,
-                    projectId: widget.projectId ?? 'default-project',
+                    projectId: selectedProjectId!,
                   );
                   context.read<TaskBloc>().add(CreateTask(input: input));
                   Navigator.of(context).pop();
+                } else if (selectedProjectId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please create a project first')),
+                  );
                 }
               },
               child: const Text('Create'),

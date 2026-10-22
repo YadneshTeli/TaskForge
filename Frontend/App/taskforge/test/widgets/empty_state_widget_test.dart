@@ -81,7 +81,7 @@ void main() {
         ),
       );
 
-      final center = tester.widget<Center>(find.byType(Center));
+      final center = tester.widget<Center>(find.byType(Center).first);
       expect(center, isNotNull);
     });
 

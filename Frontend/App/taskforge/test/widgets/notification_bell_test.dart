@@ -46,7 +46,13 @@ void main() {
         ),
       );
 
-      expect(find.byType(Stack), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(NotificationBell),
+          matching: find.byType(Stack),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('has IconButton that can be tapped',

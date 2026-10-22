@@ -22,8 +22,14 @@ class AuthService {
         await _storage.write(key: 'refresh_token', value: response['refreshToken']);
       }
       
-      // Store user data
-      _currentUser = User.fromJson(response['user']);
+      // Store user data (or fetch from /auth/me if omitted)
+      if (response['user'] != null) {
+        final userMap = Map<String, dynamic>.from(response['user']);
+        userMap['id'] = userMap['id'].toString();
+        _currentUser = User.fromJson(userMap);
+      } else {
+        _currentUser = await RestClient.getCurrentUser();
+      }
       await _storage.write(key: 'user_data', value: jsonEncode(_currentUser!.toJson()));
       
       // Initialize GraphQL client after login
@@ -49,6 +55,7 @@ class AuthService {
         'password': password,
         'firstName': firstName,
         'lastName': lastName,
+        'fullName': '$firstName $lastName'.trim(),
         'username': username,
       };
       
@@ -61,7 +68,13 @@ class AuthService {
       }
       
       // Store user data
-      _currentUser = User.fromJson(response['user']);
+      if (response['user'] != null) {
+        final userMap = Map<String, dynamic>.from(response['user']);
+        userMap['id'] = userMap['id'].toString();
+        _currentUser = User.fromJson(userMap);
+      } else {
+        _currentUser = await RestClient.getCurrentUser();
+      }
       await _storage.write(key: 'user_data', value: jsonEncode(_currentUser!.toJson()));
       
       // Initialize GraphQL client after registration
@@ -135,7 +148,9 @@ class AuthService {
       
       // Update user data if provided
       if (response['user'] != null) {
-        _currentUser = User.fromJson(response['user']);
+        final userMap = Map<String, dynamic>.from(response['user']);
+        userMap['id'] = userMap['id'].toString();
+        _currentUser = User.fromJson(userMap);
         await _storage.write(key: 'user_data', value: jsonEncode(_currentUser!.toJson()));
       }
     } catch (e) {
@@ -147,13 +162,19 @@ class AuthService {
   static Future<User> updateProfile({
     String? firstName,
     String? lastName,
+    String? fullName,
+    String? bio,
     String? username,
     String? email,
   }) async {
     try {
       final updates = <String, dynamic>{};
-      if (firstName != null) updates['firstName'] = firstName;
-      if (lastName != null) updates['lastName'] = lastName;
+      if (fullName != null) {
+        updates['fullName'] = fullName;
+      } else if (firstName != null || lastName != null) {
+        updates['fullName'] = '${firstName ?? ''} ${lastName ?? ''}'.trim();
+      }
+      if (bio != null) updates['bio'] = bio;
       if (username != null) updates['username'] = username;
       if (email != null) updates['email'] = email;
       
@@ -180,7 +201,7 @@ class AuthService {
   // Change password
   static Future<void> changePassword(String currentPassword, String newPassword) async {
     try {
-      await RestClient.dio.put('/api/auth/change-password', data: {
+      await RestClient.dio.put('/users/password', data: {
         'currentPassword': currentPassword,
         'newPassword': newPassword,
       });
@@ -192,7 +213,7 @@ class AuthService {
   // Request password reset
   static Future<void> requestPasswordReset(String email) async {
     try {
-      await RestClient.dio.post('/api/auth/forgot-password', data: {
+      await RestClient.dio.post('/auth/forgot-password', data: {
         'email': email,
       });
     } catch (e) {
@@ -203,9 +224,9 @@ class AuthService {
   // Reset password with token
   static Future<void> resetPassword(String token, String newPassword) async {
     try {
-      await RestClient.dio.post('/api/auth/reset-password', data: {
+      await RestClient.dio.post('/auth/reset-password', data: {
         'token': token,
-        'newPassword': newPassword,
+        'password': newPassword,
       });
     } catch (e) {
       throw Exception('Password reset failed: $e');

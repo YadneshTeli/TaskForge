@@ -27,6 +27,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadSettings();
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _loadSettings() async {
     setState(() {
       _isLoading = true;
@@ -54,31 +61,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load settings. Please try again.')),
-        );
+        if (!e.toString().contains('RestClient not initialized')) {
+          _showSnackBar('Failed to load settings. Please try again.');
+        }
       }
     }
   }
 
   Future<void> _updateTheme(String theme) async {
+    setState(() {
+      _theme = theme;
+    });
     try {
       await UserSettingsService.updateSettings({'theme': theme});
-      setState(() {
-        _theme = theme;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Theme updated successfully')),
-        );
-      }
+      _showSnackBar('Theme updated successfully');
     } catch (e) {
       debugPrint('Error updating theme: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update theme. Please try again.')),
-        );
-      }
+      _showSnackBar('Failed to update theme. Please try again.');
     }
   }
 
@@ -89,18 +88,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'push': _pushNotifications,
         'inApp': _inAppNotifications,
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification preferences updated')),
-        );
-      }
+      _showSnackBar('Notification preferences updated');
     } catch (e) {
       debugPrint('Failed to update notification preferences: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update notification preferences. Please try again.')),
-        );
-      }
+      _showSnackBar('Failed to update notification preferences. Please try again.');
     }
   }
 
@@ -125,17 +116,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Appearance Section
           _buildSectionHeader('Appearance'),
           ListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Theme'),
             subtitle: Text(_theme.toUpperCase()),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showThemeDialog(),
           ),
-          const Divider(),
+          const Divider(height: 1),
           
           // Notifications Section
           _buildSectionHeader('Notifications'),
           SwitchListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             secondary: const Icon(Icons.email_outlined),
             title: const Text('Email Notifications'),
             subtitle: const Text('Receive notifications via email'),
@@ -148,6 +143,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             secondary: const Icon(Icons.notifications_outlined),
             title: const Text('Push Notifications'),
             subtitle: const Text('Receive push notifications on your device'),
@@ -160,6 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             secondary: const Icon(Icons.notifications_active_outlined),
             title: const Text('In-App Notifications'),
             subtitle: const Text('Show notifications within the app'),
@@ -171,49 +170,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _updateNotificationPreferences();
             },
           ),
-          const Divider(),
+          const Divider(height: 1),
           
           // Account Section
           _buildSectionHeader('Account'),
           ListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             leading: const Icon(Icons.security_outlined),
             title: const Text('Security'),
             subtitle: const Text('Password and authentication settings'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Security settings coming soon')),
-              );
+              _showSnackBar('Security settings coming soon');
             },
           ),
           ListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             leading: const Icon(Icons.privacy_tip_outlined),
             title: const Text('Privacy'),
             subtitle: const Text('Data and privacy settings'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Privacy settings coming soon')),
-              );
+              _showSnackBar('Privacy settings coming soon');
             },
           ),
-          const Divider(),
+          const Divider(height: 1),
           
           // About Section
           _buildSectionHeader('About'),
-          ListTile(
-            leading: const Icon(Icons.info_outlined),
-            title: const Text('App Version'),
-            subtitle: const Text('1.0.0'),
+          const ListTile(
+            dense: true,
+            visualDensity: VisualDensity(vertical: -2),
+            leading: Icon(Icons.info_outlined),
+            title: Text('App Version'),
+            subtitle: Text('1.0.0'),
           ),
           ListTile(
+            dense: true,
+            visualDensity: const VisualDensity(vertical: -2),
             leading: const Icon(Icons.help_outline),
             title: const Text('Help & Support'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Help coming soon')),
-              );
+              _showSnackBar('Help coming soon');
             },
           ),
         ],
@@ -223,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -246,33 +247,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('Light'),
               value: 'light',
               groupValue: _theme,
+              toggleable: true,
               onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _updateTheme(value);
-                }
+                Navigator.of(context).pop();
+                _updateTheme(value ?? 'light');
               },
             ),
             RadioListTile<String>(
               title: const Text('Dark'),
               value: 'dark',
               groupValue: _theme,
+              toggleable: true,
               onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _updateTheme(value);
-                }
+                Navigator.of(context).pop();
+                _updateTheme(value ?? 'dark');
               },
             ),
             RadioListTile<String>(
               title: const Text('System Default'),
               value: 'system',
               groupValue: _theme,
+              toggleable: true,
               onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _updateTheme(value);
-                }
+                Navigator.of(context).pop();
+                _updateTheme(value ?? 'system');
               },
             ),
           ],

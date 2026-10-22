@@ -61,7 +61,12 @@ void main() {
         ),
       );
 
-      final center = tester.widget<Center>(find.byType(Center));
+      final center = tester.widget<Center>(
+        find.descendant(
+          of: find.byType(LoadingWidget),
+          matching: find.byType(Center),
+        ),
+      );
       expect(center, isNotNull);
     });
   });
@@ -147,7 +152,13 @@ void main() {
         ),
       );
 
-      expect(find.byType(Stack), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(LoadingOverlay),
+          matching: find.byType(Stack),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

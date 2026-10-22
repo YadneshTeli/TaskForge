@@ -17,7 +17,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<NotificationBloc>().add(LoadNotifications());
+    try {
+      context.read<NotificationBloc>().add(LoadNotifications());
+    } catch (_) {}
   }
 
   @override

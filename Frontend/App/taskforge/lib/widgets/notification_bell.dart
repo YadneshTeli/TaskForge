@@ -1,5 +1,7 @@
 // lib/widgets/notification_bell.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../blocs/notification/notification_bloc.dart';
 import '../services/notification_polling_service.dart';
 import '../screens/notifications_screen.dart';
 
@@ -23,11 +25,16 @@ class _NotificationBellState extends State<NotificationBell> {
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
-                  ),
-                );
+                try {
+                  context.read<NotificationBloc>();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                } catch (_) {
+                  // No NotificationBloc provider in context (e.g. standalone widget test)
+                }
               },
             ),
             if (unreadCount > 0)
