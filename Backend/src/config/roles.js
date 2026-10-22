@@ -1,32 +1,17 @@
 // Centralized role and permission definitions
-export default {
-    roles: ['admin', 'manager', 'user', 'viewer'],
-    permissions: {
-        upload: ['admin', 'manager'],
-        report: ['admin', 'manager'],
-        notify: ['admin', 'manager', 'user'],
-        register: ['admin', 'manager'],
-        view: ['admin', 'manager', 'user', 'viewer'],
-        deleteUser: ['admin'],
-        updateProfile: ['user', 'manager'],
-        addComment: ['user', 'manager'],
-        viewDashboard: ['viewer'],
-        // Add more permissions as needed
-    }
+const roles = ['admin', 'manager', 'user', 'viewer'];
+
+const permissions = {
+    upload: ['admin', 'manager'],
+    report: ['admin', 'manager'],
+    notify: ['admin', 'manager', 'user'],
+    register: ['admin', 'manager'],
+    view: ['admin', 'manager', 'user', 'viewer'],
+    deleteUser: ['admin'],
+    updateProfile: ['admin', 'manager', 'user'],
+    addComment: ['admin', 'manager', 'user'],
+    viewDashboard: ['admin', 'manager', 'user', 'viewer'],
 };
 
-export const { roles, permissions } = {
-    roles: ['admin', 'manager', 'user', 'viewer'],
-    permissions: {
-        upload: ['admin', 'manager'],
-        report: ['admin', 'manager'],
-        notify: ['admin', 'manager', 'user'],
-        register: ['admin', 'manager'],
-        view: ['admin', 'manager', 'user', 'viewer'],
-        deleteUser: ['admin'],
-        updateProfile: ['user', 'manager'],
-        addComment: ['user', 'manager'],
-        viewDashboard: ['viewer'],
-        // Add more permissions as needed
-    }
-};
+export { roles, permissions };
+export default { roles, permissions };

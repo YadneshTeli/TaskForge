@@ -6,22 +6,19 @@ import bcrypt from "bcryptjs";
 import { signToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt.js";
 import asyncHandler from '../utils/asyncHandler.js';
 import emailService from '../utils/email.js';
+import { protect } from "../middleware/auth.middleware.js";
+import validate from '../middleware/validate.js';
+import LogService from '../services/log.service.js';
+import { body } from 'express-validator';
+import { permissions } from '../config/roles.js';
+import expressRateLimit from 'express-rate-limit';
+
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
   maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
 };
-
-import { protect } from "../middleware/auth.middleware.js";
-import validate from '../middleware/validate.js';
-import LogService from '../services/log.service.js';
-import { body, validationResult } from 'express-validator';
-import helmet from 'helmet';
-import xss from 'xss-clean';
-import rateLimit from '../middleware/rateLimit.middleware.js';
-import { permissions } from '../config/roles.js';
-import expressRateLimit from 'express-rate-limit';
 
 // Create stricter rate limiter for auth endpoints (login/register)
 const authLimiter = expressRateLimit({
@@ -41,123 +38,242 @@ const authOperationsLimiter = expressRateLimit({
   legacyHeaders: false,
 });
 
-router.use(helmet());
-router.use(xss());
-router.use(rateLimit);
-
-function checkRole(requiredRole) {
-    return (req, res, next) => {
-        if (!req.user || req.user.role !== requiredRole) {
-            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
-        }
-        next();
-    };
-}
-
-function checkRoles(allowedRoles) {
-    return (req, res, next) => {
-        if (!req.user || !allowedRoles.includes(req.user.role)) {
-            return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
-        }
-        next();
-    };
-}
-
 function checkRolesFor(action) {
     return (req, res, next) => {
-        if (!req.user || !permissions[action].includes(req.user.role)) {
+        const userRole = req.user?.role ? String(req.user.role).toLowerCase() : null;
+        if (!userRole || !permissions[action]?.includes(userRole)) {
             return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
         }
         next();
     };
 }
 
-// Only admin and manager can register
+function sanitizeUser(user) {
+    if (!user) return null;
+    const { password, resetPasswordToken, resetPasswordExpires, verificationToken, verificationExpires, ...safeUser } = user;
+    return safeUser;
+}
+
+// Public Registration
 router.post(
   "/register",
-  authLimiter, // Strict rate limiting for registration
-  checkRolesFor('register'),
+  authLimiter,
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   body('username').notEmpty().withMessage('Username is required'),
   validate,
-  protect,
   asyncHandler(async (req, res) => {
-    const { email, password, username } = req.body;
+    const { email, password, username, fullName, firstName, lastName } = req.body;
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({ message: 'User with this email already exists' });
+    }
+
     const hashed = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({ data: { email, password: hashed, username } });
-    const token = signToken({ id: user.id });
-    res.json({ token });
+    const computedFullName = fullName || [firstName, lastName].filter(Boolean).join(' ') || null;
+    const verificationToken = emailService.generateToken();
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashed,
+        username,
+        fullName: computedFullName,
+        verificationToken,
+        verificationExpires,
+      }
+    });
+
+    // Initialize user stats
+    await prisma.userStats.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id }
+    }).catch(() => {});
+
+    // Send verification & welcome emails (non-blocking)
+    emailService.sendVerificationEmail(user.email, verificationToken, user.username).catch(() => {});
+    emailService.sendWelcomeEmail(user.email, user.username).catch(() => {});
+
+    const token = signToken({ id: user.id, role: user.role.toLowerCase() });
+    const refreshToken = signRefreshToken({ id: user.id, role: user.role.toLowerCase() });
+    res.cookie("refreshToken", refreshToken, cookieOptions);
+
+    await LogService.logAction('User registered', null, user.id);
+    res.status(201).json({
+      token,
+      refreshToken,
+      user: sanitizeUser(user)
+    });
   })
 );
 
+// Public Login
 router.post('/login',
-    authLimiter, // Strict rate limiting for login
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-    (req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-    },
-  protect,
+  authLimiter,
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').notEmpty().withMessage('Password is required'),
+  validate,
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ message: "Invalid credentials" });
     }
-    const token = signToken({ id: user.id });
-    const refreshToken = signRefreshToken({ id: user.id });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLogin: new Date(),
+        lastSeen: new Date(),
+        isOnline: true
+      }
+    });
+
+    const token = signToken({ id: updatedUser.id, role: updatedUser.role.toLowerCase() });
+    const refreshToken = signRefreshToken({ id: updatedUser.id, role: updatedUser.role.toLowerCase() });
     res.cookie("refreshToken", refreshToken, cookieOptions);
-    await LogService.logAction('User login', null);
-    res.json({ token });
+    await LogService.logAction('User login', null, updatedUser.id);
+
+    res.json({
+      token,
+      refreshToken,
+      user: sanitizeUser(updatedUser)
+    });
   })
 );
 
-router.post("/refresh-token", authOperationsLimiter, asyncHandler(async (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
+// Refresh Token (supports both cookie and body refreshToken, mounted at /refresh-token and /refresh)
+const handleRefreshToken = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (!refreshToken) return res.status(401).json({ message: "No refresh token" });
   try {
     const payload = verifyRefreshToken(refreshToken);
-    const token = signToken({ id: payload.id });
-    res.json({ token });
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    if (!user) {
+      return res.status(401).json({ message: "User no longer exists" });
+    }
+    const token = signToken({ id: user.id, role: user.role.toLowerCase() });
+    const newRefreshToken = signRefreshToken({ id: user.id, role: user.role.toLowerCase() });
+    res.cookie("refreshToken", newRefreshToken, cookieOptions);
+    res.json({
+      token,
+      refreshToken: newRefreshToken,
+      user: sanitizeUser(user)
+    });
   } catch (err) {
     res.status(401).json({ message: "Invalid refresh token" });
   }
-}));
-
-router.post("/logout", (req, res) => {
-  res.clearCookie("refreshToken", cookieOptions);
-  res.json({ message: "Logged out" });
 });
 
-// Only admin, manager, user, and viewer can view profile
-router.get('/profile',
-    checkRolesFor('view'),
-    (req, res, next) => {
-        // ...existing profile logic...
+router.post("/refresh-token", authOperationsLimiter, handleRefreshToken);
+router.post("/refresh", authOperationsLimiter, handleRefreshToken);
+
+router.post("/logout", asyncHandler(async (req, res) => {
+  if (req.user?.id) {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { isOnline: false, lastSeen: new Date() }
+    }).catch(() => {});
+  }
+  res.clearCookie("refreshToken", cookieOptions);
+  res.json({ message: "Logged out" });
+}));
+
+// Get current authenticated user
+router.get('/me',
+  protect,
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+    res.json({ user: sanitizeUser(user) });
+  })
+);
+
+// View profile (alias for /api/users/profile)
+router.get('/profile',
+  protect,
+  checkRolesFor('view'),
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ user: sanitizeUser(user), ...sanitizeUser(user) });
+  })
+);
+
+// Update profile (alias for /api/users/profile)
+router.put('/profile',
+  protect,
+  checkRolesFor('updateProfile'),
+  asyncHandler(async (req, res) => {
+    const { fullName, firstName, lastName, bio, profilePicture } = req.body;
+    const updates = {};
+    if (fullName !== undefined) updates.fullName = fullName;
+    else if (firstName !== undefined || lastName !== undefined) {
+      updates.fullName = [firstName, lastName].filter(Boolean).join(' ');
+    }
+    if (bio !== undefined) updates.bio = bio;
+    if (profilePicture !== undefined) updates.profilePicture = profilePicture;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: updates
+    });
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: sanitizeUser(user)
+    });
+  })
+);
+
+// Change password (alias for /api/users/password)
+router.put('/change-password',
+  protect,
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+  validate,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword }
+    });
+    res.json({ message: 'Password updated successfully' });
+  })
 );
 
 // Only admin can delete users
 router.delete('/user/:id',
-    checkRolesFor('deleteUser'),
-    (req, res, next) => {
-        // ...existing delete user logic...
-    }
+  protect,
+  checkRolesFor('deleteUser'),
+  asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    await prisma.user.delete({ where: { id: userId } });
+    res.json({ message: 'User deleted successfully' });
+  })
 );
 
-// Only user and manager can update profile
-router.put('/profile',
-    checkRolesFor('updateProfile'),
-    (req, res, next) => {
-        // ...existing update profile logic...
-    }
-);
-
-// ==================== NEW AUTHENTICATION ENDPOINTS ====================
+// ==================== PASSWORD RESET & EMAIL VERIFICATION ====================
 
 // Forgot Password - Send reset email
 router.post('/forgot-password',
@@ -197,10 +313,16 @@ router.post('/forgot-password',
 router.post('/reset-password',
   authOperationsLimiter,
   body('token').notEmpty().withMessage('Token is required'),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('password').optional().isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('newPassword').optional().isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   validate,
   asyncHandler(async (req, res) => {
-    const { token, password } = req.body;
+    const { token, password, newPassword } = req.body;
+    const finalPassword = password || newPassword;
+
+    if (!finalPassword || finalPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    }
 
     const user = await prisma.user.findFirst({
       where: {
@@ -216,7 +338,7 @@ router.post('/reset-password',
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
     // Update password and clear reset token
     await prisma.user.update({

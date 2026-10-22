@@ -6,6 +6,7 @@ validateEnv();
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { ApolloServer } from 'apollo-server-express';
 import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
 import connectMongo from './config/db.js';
@@ -13,7 +14,7 @@ import typeDefs from './schema/index.js';
 import getResolvers from './resolvers/index.js';
 import * as authMiddleware from './middleware/auth.middleware.js';
 import rateLimit from './middleware/rateLimit.middleware.js';
-import errorHandler, { notFoundHandler } from './middleware/errorHandler.js';
+import errorHandler, { notFoundHandler, correlationMiddleware } from './middleware/errorHandler.js';
 import securityMiddleware from './middleware/security.middleware.js';
 import authRoutes from './routes/auth.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
@@ -26,8 +27,21 @@ import userRoutes from './routes/user.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import mongoose from 'mongoose';
 import { PrismaClient } from '@prisma/client';
+import Project from './models/project.model.js';
+import Task from './models/task.model.js';
 
 const app = express();
+const prisma = new PrismaClient();
+
+// Enforce HTTPS in production before any routes
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect('https://' + req.headers.host + req.url);
+    }
+    next();
+  });
+}
 
 // Get allowed origins from environment variable
 const allowedOrigins = process.env.CORS_ORIGIN 
@@ -56,6 +70,9 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(correlationMiddleware);
+app.use(cookieParser());
+
 // Body parser with size limits to prevent DoS attacks
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -65,7 +82,7 @@ app.use(rateLimit);
 securityMiddleware(app);
 
 app.use("/api/auth", authRoutes);
-app.use("/api/file", uploadRoutes);
+app.use(["/api/file", "/api/upload"], uploadRoutes);
 
 // Enhanced health check endpoint with comprehensive system checks
 app.get('/api/health', async (req, res) => {
@@ -113,7 +130,6 @@ app.get('/api/health', async (req, res) => {
 
   // Check PostgreSQL/Prisma connection
   try {
-    const prisma = new PrismaClient();
     const queryStart = Date.now();
     await prisma.$queryRaw`SELECT 1`;
     const queryTime = Date.now() - queryStart;
@@ -128,7 +144,6 @@ app.get('/api/health', async (req, res) => {
         userCount
       }
     };
-    await prisma.$disconnect();
   } catch (error) {
     health.checks.postgresql = {
       status: 'error',
@@ -224,9 +239,7 @@ app.get('/api/health', async (req, res) => {
 app.get('/health/ready', async (req, res) => {
   try {
     const mongoReady = mongoose.connection.readyState === 1;
-    const prisma = new PrismaClient();
     await prisma.$queryRaw`SELECT 1`;
-    await prisma.$disconnect();
     
     if (mongoReady) {
       res.status(200).json({ status: 'ready' });
@@ -272,13 +285,12 @@ app.get('/api/metrics', async (req, res) => {
       }
     };
 
-    // Get Prisma stats
+    // Get Prisma & MongoDB stats
     try {
-      const prisma = new PrismaClient();
       const [userCount, projectCount, taskCount] = await Promise.all([
         prisma.user.count(),
-        prisma.project.count(),
-        prisma.taskMetrics.count()
+        mongoose.connection.readyState === 1 ? Project.countDocuments() : prisma.projectAnalytics.count(),
+        mongoose.connection.readyState === 1 ? Task.countDocuments() : prisma.taskMetrics.count()
       ]);
       
       metrics.database.postgresql = {
@@ -286,8 +298,6 @@ app.get('/api/metrics', async (req, res) => {
         projectCount,
         taskCount
       };
-      
-      await prisma.$disconnect();
     } catch (error) {
       metrics.database.postgresql = { error: error.message };
     }
@@ -313,11 +323,13 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
-      projects: '/api/project',
+      projects: '/api/projects',
       tasks: '/api/tasks',
       comments: '/api/comments',
       files: '/api/file',
-      reports: '/api/report',
+      reports: '/api/reports',
+      users: '/api/users',
+      notifications: '/api/notifications',
       admin: '/api/admin',
       health: '/api/health',
       graphql: '/graphql'
@@ -325,19 +337,14 @@ app.get('/api', (req, res) => {
   });
 });
 
-app.use("/api/report", reportRoutes);
-app.use("/api/project", projectRoutes);
+// Support both singular and plural route prefixes across Web & Mobile clients
+app.use(["/api/report", "/api/reports"], reportRoutes);
+app.use(["/api/project", "/api/projects"], projectRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/comments", commentRoutes);
-app.use("/api/users", userRoutes);
+app.use(["/api/users", "/api/user"], userRoutes);
 app.use("/api/notifications", notificationRoutes);
-
-// 404 handler for undefined routes (must be after all other routes)
-app.use(notFoundHandler);
-
-// Global error handler (must be last)
-app.use(errorHandler);
 
 async function start() {
     try {
@@ -376,6 +383,12 @@ async function start() {
         await server.start();
         server.applyMiddleware({ app });
 
+        // 404 handler for undefined routes (must be after all REST & GraphQL routes)
+        app.use(notFoundHandler);
+
+        // Global error handler (must be last)
+        app.use(errorHandler);
+
         // Listen on all interfaces (0.0.0.0) instead of just localhost
         const PORT = process.env.PORT || 4000;
         const serverInstance = app.listen(PORT, '0.0.0.0', () => {
@@ -396,7 +409,7 @@ async function start() {
                     await mongoose.connection.close();
                     console.log('MongoDB connection closed');
                     
-                    await new PrismaClient().$disconnect();
+                    await prisma.$disconnect();
                     console.log('Prisma connection closed');
                     
                     console.log('Graceful shutdown completed');
@@ -442,14 +455,5 @@ process.on('unhandledRejection', (reason, promise) => {
         process.exit(1);
     }
 });
-
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect('https://' + req.headers.host + req.url);
-    }
-    next();
-  });
-}
 
 start();

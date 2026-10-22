@@ -7,8 +7,16 @@ import { body, query } from 'express-validator';
 import validate from '../middleware/validate.js';
 import { PrismaClient } from '@prisma/client';
 import emailService from '../utils/email.js';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+function sanitizeUser(user) {
+    if (!user) return null;
+    const plain = typeof user.toObject === 'function' ? user.toObject() : user;
+    const { password, resetPasswordToken, resetPasswordExpires, verificationToken, verificationExpires, ...userWithoutPassword } = plain;
+    return userWithoutPassword;
+}
 
 // Get current user profile
 router.get('/profile', 
@@ -18,10 +26,7 @@ router.get('/profile',
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        
-        // Remove sensitive data
-        const { password, ...userWithoutPassword } = user.toObject();
-        res.json(userWithoutPassword);
+        res.json(sanitizeUser(user));
     })
 );
 
@@ -49,10 +54,9 @@ router.put('/profile',
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const { password, ...userWithoutPassword } = user.toObject();
         res.json({ 
             message: 'Profile updated successfully',
-            user: userWithoutPassword 
+            user: sanitizeUser(user)
         });
     })
 );
@@ -76,8 +80,7 @@ router.put('/password',
         }
 
         // Verify current password
-        const bcrypt = await import('bcryptjs');
-        const isMatch = await bcrypt.default.compare(currentPassword, user.password);
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
         
         if (!isMatch) {
             return res.status(401).json({ message: 'Current password is incorrect' });
@@ -89,24 +92,6 @@ router.put('/password',
         res.json({ message: 'Password updated successfully' });
     })
 );
-
-// Get user by ID (admin only - can be extended)
-router.get('/:id',
-    protect,
-    asyncHandler(async (req, res) => {
-        const user = await userService.getUserById(req.params.id);
-        
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Remove sensitive data
-        const { password, ...userWithoutPassword } = user.toObject();
-        res.json(userWithoutPassword);
-    })
-);
-
-// ==================== NEW USER ENDPOINTS ====================
 
 // Search users by query (for autocomplete, mentions, etc.)
 router.get('/search',
@@ -145,7 +130,7 @@ router.get('/',
     protect,
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-    query('role').optional().isIn(['ADMIN', 'USER']).withMessage('Invalid role'),
+    query('role').optional().isString(),
     query('search').optional().isString(),
     validate,
     asyncHandler(async (req, res) => {
@@ -159,8 +144,8 @@ router.get('/',
             isActive: true
         };
 
-        if (role) {
-            where.role = role;
+        if (role && ['ADMIN', 'USER'].includes(role.toUpperCase())) {
+            where.role = role.toUpperCase();
         }
 
         if (search) {
@@ -181,6 +166,7 @@ router.get('/',
                     fullName: true,
                     profilePicture: true,
                     role: true,
+                    isOnline: true,
                     emailVerified: true,
                     onboardingCompleted: true,
                     lastSeen: true,
@@ -222,7 +208,11 @@ router.post('/complete-onboarding',
         };
 
         if (preferences) {
-            updates.settings = preferences;
+            updates.settings = {
+                ...preferences,
+                ...(role && { onboardingRole: role }),
+                ...(teamName && { teamName })
+            };
         }
 
         const user = await prisma.user.update({
@@ -307,7 +297,7 @@ router.put('/settings',
         });
 
         // Merge new settings with existing
-        const currentSettings = currentUser.settings || {};
+        const currentSettings = currentUser?.settings || {};
         const updatedSettings = { ...currentSettings, ...req.body };
 
         const user = await prisma.user.update({
@@ -326,38 +316,37 @@ router.put('/settings',
     })
 );
 
-// Get user statistics
-router.get('/stats',
-    protect,
-    asyncHandler(async (req, res) => {
-        const stats = await prisma.userStats.findUnique({
-            where: { userId: req.user.id }
+// Get user statistics (current user or by /:id/stats)
+const handleUserStats = asyncHandler(async (req, res) => {
+    const targetUserId = req.params.id ? parseInt(req.params.id, 10) : req.user.id;
+    const stats = await prisma.userStats.findUnique({
+        where: { userId: targetUserId }
+    });
+
+    if (!stats) {
+        return res.json({
+            totalProjectsOwned: 0,
+            totalProjectsJoined: 0,
+            totalTasksCreated: 0,
+            totalTasksCompleted: 0,
+            totalTasksInProgress: 0,
+            totalComments: 0,
+            productivity: 0
         });
+    }
 
-        if (!stats) {
-            // Return default stats if none exist
-            return res.json({
-                totalProjectsOwned: 0,
-                totalProjectsJoined: 0,
-                totalTasksCreated: 0,
-                totalTasksCompleted: 0,
-                totalTasksInProgress: 0,
-                totalComments: 0,
-                productivity: 0
-            });
-        }
+    const productivity = stats.totalTasksCreated > 0
+        ? Math.round((stats.totalTasksCompleted / stats.totalTasksCreated) * 100)
+        : 0;
 
-        // Calculate productivity percentage
-        const productivity = stats.totalTasksCreated > 0
-            ? Math.round((stats.totalTasksCompleted / stats.totalTasksCreated) * 100)
-            : 0;
+    res.json({
+        ...stats,
+        productivity
+    });
+});
 
-        res.json({
-            ...stats,
-            productivity
-        });
-    })
-);
+router.get('/stats', protect, handleUserStats);
+router.get('/:id/stats', protect, handleUserStats);
 
 // Invite user to platform/project
 router.post('/invite',
@@ -505,5 +494,23 @@ router.put('/notification-preferences',
     })
 );
 
-export default router;
+// Get user by ID (placed AFTER all static GET routes so it doesn't shadow /search, /settings, /stats, etc.)
+router.get('/:id',
+    protect,
+    asyncHandler(async (req, res) => {
+        const userId = parseInt(req.params.id, 10);
+        if (Number.isNaN(userId)) {
+            return res.status(400).json({ message: 'Invalid user ID' });
+        }
 
+        const user = await userService.getUserById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(sanitizeUser(user));
+    })
+);
+
+export default router;

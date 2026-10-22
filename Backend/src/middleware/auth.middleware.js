@@ -52,6 +52,7 @@ export const authorize = (roles = []) => {
     if (typeof roles === 'string') {
         roles = [roles];
     }
+    const normalizedRoles = roles.map(r => r.toLowerCase());
     
     return (req, res, next) => {
         // Check authentication first
@@ -59,8 +60,10 @@ export const authorize = (roles = []) => {
             return next(new AuthenticationError('Authentication required'));
         }
         
+        const userRole = req.user.role ? String(req.user.role).toLowerCase() : 'user';
+        
         // Check role authorization
-        if (roles.length && !roles.includes(req.user.role)) {
+        if (normalizedRoles.length && !normalizedRoles.includes(userRole)) {
             return next(new AuthorizationError(
                 `Access denied. Required role(s): ${roles.join(', ')}`
             ));
