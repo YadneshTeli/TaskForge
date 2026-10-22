@@ -59,7 +59,6 @@ const TaskSchema = new mongoose.Schema({
 TaskSchema.index({ projectId: 1, status: 1 });
 TaskSchema.index({ assignedTo: 1, status: 1 });
 TaskSchema.index({ projectId: 1, assignedTo: 1 });
-TaskSchema.index({ tags: 1 });
 TaskSchema.index({ dueDate: 1, status: 1 });
 
 // Update project stats when task is saved

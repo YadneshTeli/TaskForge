@@ -1,54 +1,36 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 
-function runCommand(command, description) {
-  console.log(`🔄 ${description}...`);
-  try {
-    execSync(command, { stdio: 'inherit' });
-    console.log(`✅ ${description} completed`);
-  } catch (error) {
-    console.error(`❌ ${description} failed:`, error.message);
-    throw error;
-  }
-}
-
-async function setupEnvironment() {
+export async function setupEnvironment() {
   console.log('📝 TaskForge Environment Setup\n');
   
   const envPath = path.join(process.cwd(), '.env');
-  const envExamplePath = path.join(process.cwd(), '.env.example');
   
-  // Check if .env exists
   if (fs.existsSync(envPath)) {
     console.log('📄 .env file already exists');
-    
-    // Read existing content
-    const existingContent = fs.readFileSync(envPath, 'utf8');
-    
-    // Check if JWT_SECRET needs to be generated
-    if (!existingContent.includes('JWT_SECRET=') || existingContent.includes('JWT_SECRET=supersecret')) {
-      console.log('🔐 Generating secure JWT secret...');
-      const jwtSecret = crypto.randomBytes(64).toString('hex');
-      
-      let updatedContent = existingContent;
-      if (existingContent.includes('JWT_SECRET=')) {
-        updatedContent = existingContent.replace(/JWT_SECRET=.*/, `JWT_SECRET=${jwtSecret}`);
-      } else {
-        updatedContent += `\n# JWT Configuration\nJWT_SECRET=${jwtSecret}\nJWT_EXPIRE=7d\n`;
-      }
-      
-      fs.writeFileSync(envPath, updatedContent);
-      console.log('✅ JWT secret updated');
-    }
-    
-    // Add missing environment variables
     let content = fs.readFileSync(envPath, 'utf8');
     let updated = false;
-    
+
+    if (!content.includes('JWT_SECRET=') || content.includes('JWT_SECRET=supersecret')) {
+      const jwtSecret = crypto.randomBytes(64).toString('hex');
+      if (content.includes('JWT_SECRET=')) {
+        content = content.replace(/JWT_SECRET=.*/, `JWT_SECRET=${jwtSecret}`);
+      } else {
+        content += `\nJWT_SECRET=${jwtSecret}\n`;
+      }
+      updated = true;
+    }
+
+    if (!content.includes('JWT_REFRESH_SECRET=')) {
+      const jwtRefreshSecret = crypto.randomBytes(64).toString('hex');
+      content += `\nJWT_REFRESH_SECRET=${jwtRefreshSecret}\n`;
+      updated = true;
+    }
+
     const requiredVars = [
       'NODE_ENV=development',
       'PORT=4000',
@@ -75,10 +57,10 @@ async function setupEnvironment() {
     return;
   }
   
-  // Create new .env file
   console.log('📝 Creating new .env file...');
   
   const jwtSecret = crypto.randomBytes(64).toString('hex');
+  const jwtRefreshSecret = crypto.randomBytes(64).toString('hex');
   
   const envContent = `# TaskForge Development Environment
 # Generated on ${new Date().toISOString()}
@@ -89,13 +71,14 @@ PORT=4000
 
 # JWT Configuration
 JWT_SECRET=${jwtSecret}
+JWT_REFRESH_SECRET=${jwtRefreshSecret}
 JWT_EXPIRE=7d
 
 # PostgreSQL Database (Prisma) - Analytics & User Management
-DATABASE_URL="postgresql://postgres:admin@localhost:5432/TaskForge"
+DATABASE_URL="postgresql://taskforge_user:taskforge_password_2024@localhost:5432/taskforge_db?schema=public"
 
 # MongoDB Database (Mongoose) - Tasks & Projects
-MONGO_URI="mongodb://localhost:27017/TaskForge"
+MONGO_URI="mongodb://localhost:27017/taskforge_mongo"
 
 # CORS Configuration
 CORS_ORIGIN=http://localhost:3000,http://localhost:5173
@@ -104,47 +87,21 @@ CORS_ORIGIN=http://localhost:3000,http://localhost:5173
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
+# Email Configuration
+EMAIL_FROM=noreply@taskforge.com
+EMAIL_ENABLED=false
+FRONTEND_URL=http://localhost:5173
+
 # Logging
 LOG_LEVEL=debug
-
-# Optional: Cloudinary Configuration (for file uploads)
-# CLOUDINARY_CLOUD_NAME=your_cloud_name
-# CLOUDINARY_API_KEY=your_api_key
-# CLOUDINARY_API_SECRET=your_api_secret
-
-# Optional: Email Configuration (for notifications)  
-# SMTP_HOST=smtp.gmail.com
-# SMTP_PORT=587
-# SMTP_USER=your_email@gmail.com
-# SMTP_PASS=your_app_password
-
-# Optional: Redis Configuration (for caching)
-# REDIS_URL=redis://localhost:6379
 `;
 
   fs.writeFileSync(envPath, envContent);
   console.log('✅ Environment file created with secure configuration');
-  
-  console.log('\n📋 Environment setup complete!');
-  console.log('\n🔧 Your .env file contains:');
-  console.log('✅ Secure JWT secret (64-byte random hex)');
-  console.log('✅ Development server configuration');
-  console.log('✅ Local database connection strings');
-  console.log('✅ Security and rate limiting settings');
-  
-  console.log('\n📝 To use cloud databases, update these variables:');
-  console.log('🔹 DATABASE_URL - Your PostgreSQL connection string');
-  console.log('🔹 MONGO_URI - Your MongoDB connection string');
-  
-  console.log('\n🚀 Environment is ready! Next steps:');
-  console.log('1. Set up your databases: npm run setup:docker OR npm run setup:local');
-  console.log('2. Initialize schema: npm run db:init');
-  console.log('3. Seed data: npm run db:seed');
 }
 
-// Run if called directly
-if (require.main === module) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   setupEnvironment().catch(console.error);
 }
 
-module.exports = setupEnvironment;
+export default setupEnvironment;

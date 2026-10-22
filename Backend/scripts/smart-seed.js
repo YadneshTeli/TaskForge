@@ -1,39 +1,44 @@
-const { PrismaClient } = require('@prisma/client');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-require('dotenv').config();
+import { PrismaClient } from '@prisma/client';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import 'dotenv/config';
+import Project from '../src/models/project.model.js';
+import Task from '../src/models/task.model.js';
+import Log from '../src/models/log.model.js';
 
 const prisma = new PrismaClient();
 
-async function smartSeedDatabases() {
+export async function smartSeedDatabases() {
   try {
     console.log('🌱 Smart seeding TaskForge databases...\n');
     
-    // Connect to databases
     await prisma.$connect();
     await mongoose.connect(process.env.MONGO_URI);
     
-    // Get existing users
     const existingUsers = await prisma.user.findMany();
     console.log(`📊 Found ${existingUsers.length} existing users`);
     
-    // Create additional users if needed
     const additionalUsers = [
       {
         email: 'john@taskforge.com', 
         username: 'john_doe',
+        fullName: 'John Doe',
         password: 'user123',
         role: 'USER'
       },
       {
         email: 'jane@taskforge.com',
         username: 'jane_smith', 
+        fullName: 'Jane Smith',
         password: 'user123',
         role: 'USER'
       },
       {
         email: 'mike@taskforge.com',
         username: 'mike_wilson',
+        fullName: 'Mike Wilson',
         password: 'user123',
         role: 'USER'
       }
@@ -49,17 +54,18 @@ async function smartSeedDatabases() {
       
       if (!existing) {
         const hashedPassword = await bcrypt.hash(userData.password, 12);
-        
         const user = await prisma.user.create({
           data: {
             email: userData.email,
             username: userData.username,
+            fullName: userData.fullName,
             password: hashedPassword,
-            role: userData.role
+            role: userData.role,
+            emailVerified: true,
+            onboardingCompleted: true
           }
         });
         
-        // Create user stats
         await prisma.userStats.create({
           data: {
             userId: user.id,
@@ -68,7 +74,7 @@ async function smartSeedDatabases() {
             totalTasksPending: Math.floor(Math.random() * 10),
             totalProjectsOwned: Math.floor(Math.random() * 3),
             totalTimeSpent: Math.floor(Math.random() * 1000) + 100,
-            avgTaskCompletionTime: 120 + Math.random() * 180
+            avgCompletionTime: 120 + Math.random() * 180
           }
         });
         
@@ -80,8 +86,8 @@ async function smartSeedDatabases() {
       }
     }
     
-    // Create additional projects
-    console.log('\n📁 Creating additional projects...');
+    // Create additional projects in MongoDB
+    console.log('\n📁 Creating additional projects in MongoDB...');
     const sampleProjects = [
       {
         name: 'TaskForge Mobile App',
@@ -97,40 +103,41 @@ async function smartSeedDatabases() {
       }
     ];
     
-    const allProjects = await prisma.project.findMany();
+    const allProjects = await Project.find();
     
     for (let i = 0; i < sampleProjects.length; i++) {
       const projectData = sampleProjects[i];
       const owner = allUsers[i % allUsers.length];
       
-      const existing = await prisma.project.findFirst({
-        where: { name: projectData.name }
-      });
+      const existing = await Project.findOne({ name: projectData.name });
       
       if (!existing) {
-        const project = await prisma.project.create({
-          data: {
-            name: projectData.name,
-            ownerId: owner.id
-          }
+        const project = await Project.create({
+          name: projectData.name,
+          description: projectData.description,
+          owner: owner.id,
+          members: [owner.id],
+          status: 'active'
         });
         
-        // Create project analytics
         const taskCount = Math.floor(Math.random() * 15) + 5;
         const completedTasks = Math.floor(taskCount * 0.6);
         const pendingTasks = taskCount - completedTasks;
         
-        await prisma.projectAnalytics.create({
-          data: {
-            projectId: project.id,
+        await prisma.projectAnalytics.upsert({
+          where: { projectId: project._id.toString() },
+          update: {},
+          create: {
+            projectId: project._id.toString(),
             totalTasks: taskCount,
             completedTasks: completedTasks,
             pendingTasks: pendingTasks,
             inProgressTasks: Math.floor(pendingTasks * 0.3),
-            totalMembers: Math.floor(Math.random() * 5) + 2,
+            totalMembers: 1,
             totalTimeSpent: Math.floor(Math.random() * 2000) + 500,
             avgTaskCompletionTime: 90 + Math.random() * 120,
-            productivityScore: 70 + Math.random() * 25
+            productivityScore: 70 + Math.random() * 25,
+            completionRate: Math.round((completedTasks / taskCount) * 100)
           }
         });
         
@@ -143,29 +150,6 @@ async function smartSeedDatabases() {
     
     // Create comprehensive tasks in MongoDB
     console.log('\n✅ Creating comprehensive tasks...');
-    
-    const TaskSchema = new mongoose.Schema({
-      title: String,
-      description: String,
-      status: { type: String, enum: ["todo", "in-progress", "done"], default: "todo" },
-      priority: { type: String, enum: ["low", "medium", "high"], default: "medium" },
-      projectId: String,
-      assignedTo: String,
-      createdAt: { type: Date, default: Date.now },
-      updatedAt: { type: Date, default: Date.now },
-      dueDate: Date,
-      tags: [String],
-      attachments: [String],
-      comments: [{
-        userId: String,
-        username: String,
-        text: String,
-        createdAt: { type: Date, default: Date.now }
-      }]
-    });
-    
-    const Task = mongoose.model('Task', TaskSchema);
-    
     const sampleTasks = [
       {
         title: 'Design Database Schema',
@@ -189,66 +173,24 @@ async function smartSeedDatabases() {
         tags: ['flutter', 'ui', 'mobile']
       },
       {
-        title: 'Setup Real-time Notifications',
-        description: 'Implement WebSocket notifications for real-time updates',
-        status: 'in-progress',
-        priority: 'medium',
-        tags: ['websocket', 'notifications', 'realtime']
-      },
-      {
         title: 'Create Project Analytics Dashboard',
         description: 'Build comprehensive analytics dashboard with charts and metrics',
         status: 'todo',
         priority: 'medium',
         tags: ['analytics', 'dashboard', 'frontend']
-      },
-      {
-        title: 'Write API Documentation',
-        description: 'Document all API endpoints with examples and Postman collection',
-        status: 'todo',
-        priority: 'low',
-        tags: ['documentation', 'api']
-      },
-      {
-        title: 'Setup CI/CD Pipeline',
-        description: 'Configure automated testing and deployment pipeline',
-        status: 'todo',
-        priority: 'medium',
-        tags: ['devops', 'ci-cd', 'automation']
-      },
-      {
-        title: 'Mobile App Beta Testing',
-        description: 'Conduct comprehensive beta testing with user feedback collection',
-        status: 'todo',
-        priority: 'high',
-        tags: ['testing', 'mobile', 'qa']
-      },
-      {
-        title: 'Performance Optimization',
-        description: 'Optimize database queries and API response times',
-        status: 'todo',
-        priority: 'medium',
-        tags: ['performance', 'optimization', 'backend']
-      },
-      {
-        title: 'Security Audit',
-        description: 'Comprehensive security audit and penetration testing',
-        status: 'todo',
-        priority: 'high',
-        tags: ['security', 'audit', 'testing']
       }
     ];
     
-    const currentProjects = await prisma.project.findMany();
+    const currentProjects = await Project.find();
     
     for (let i = 0; i < sampleTasks.length; i++) {
       const taskData = sampleTasks[i];
       const project = currentProjects[i % currentProjects.length];
-      const assignee = allUsers[Math.floor(Math.random() * allUsers.length)];
+      const assignee = allUsers[i % allUsers.length];
       
       const existingTask = await Task.findOne({ title: taskData.title });
       
-      if (!existingTask) {
+      if (!existingTask && project) {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) + 1);
         
@@ -257,31 +199,22 @@ async function smartSeedDatabases() {
           description: taskData.description,
           status: taskData.status,
           priority: taskData.priority,
-          projectId: project.id.toString(),
-          assignedTo: assignee.id.toString(),
+          projectId: project._id,
+          assignedTo: assignee.id,
+          createdBy: assignee.id,
           dueDate: dueDate,
-          tags: taskData.tags,
-          comments: [
-            {
-              userId: assignee.id.toString(),
-              username: assignee.username,
-              text: `Started working on ${taskData.title}. Setting up initial requirements.`,
-              createdAt: new Date()
-            }
-          ]
+          tags: taskData.tags
         });
         
-        // Create task metrics in PostgreSQL
-        await prisma.taskMetrics.create({
-          data: {
+        await prisma.taskMetrics.upsert({
+          where: { taskId: task._id.toString() },
+          update: {},
+          create: {
             taskId: task._id.toString(),
-            projectId: project.id,
-            title: task.title,
+            projectId: project._id.toString(),
             status: task.status,
-            priority: task.priority,
-            assignedTo: assignee.id,
+            userId: assignee.id,
             timeSpent: Math.floor(Math.random() * 300),
-            dueDate: task.dueDate,
             completedAt: task.status === 'done' ? new Date() : null
           }
         });
@@ -294,15 +227,10 @@ async function smartSeedDatabases() {
     
     // Create notifications
     console.log('\n🔔 Creating notifications...');
-    
     const notificationTypes = [
-      { content: 'New task assigned to you: Design Database Schema', seen: false },
-      { content: 'Task completed: JWT Authentication Implementation', seen: true },
-      { content: 'Project deadline approaching: TaskForge Mobile App', seen: false },
-      { content: 'New comment on your task: Flutter UI Development', seen: false },
-      { content: 'You were added to project: Marketing Campaign Q4', seen: true },
-      { content: 'Task overdue: API Documentation', seen: false },
-      { content: 'Weekly summary: 5 tasks completed this week', seen: true }
+      { content: 'New task assigned to you: Design Database Schema', seen: false, type: 'task_assigned' },
+      { content: 'Task completed: JWT Authentication Implementation', seen: true, type: 'task_completed' },
+      { content: 'Project deadline approaching: TaskForge Mobile App', seen: false, type: 'task_due_soon' }
     ];
     
     for (const user of allUsers) {
@@ -311,89 +239,41 @@ async function smartSeedDatabases() {
       });
       
       if (existingNotifications.length < 3) {
-        const notificationsToAdd = notificationTypes.slice(0, 3);
-        
-        for (const notif of notificationsToAdd) {
+        for (const notif of notificationTypes) {
           await prisma.notification.create({
             data: {
               content: notif.content,
+              type: notif.type,
               seen: notif.seen,
               userId: user.id
             }
           });
         }
         console.log(`✅ Notifications created for: ${user.username}`);
-      } else {
-        console.log(`⏭️  Notifications exist for: ${user.username}`);
       }
     }
     
-    // Create activity logs
-    console.log('\n📝 Creating activity logs...');
-    
+    // Create activity logs in MongoDB
+    console.log('\n📝 Creating activity logs in MongoDB...');
     const logActions = [
       'Task "Design Database Schema" created',
       'Task "JWT Authentication" completed', 
-      'Task "Flutter UI" updated to in-progress',
-      'Project "TaskForge Mobile App" created',
-      'User john_doe joined project',
-      'Comment added to task "Real-time Notifications"',
-      'Task "Performance Optimization" assigned to jane_smith',
-      'Project analytics updated for Q4 campaign'
+      'Project "TaskForge Mobile App" created'
     ];
     
     for (const project of currentProjects) {
-      const existingLogs = await prisma.log.findMany({
-        where: { projectId: project.id }
-      });
-      
-      if (existingLogs.length < 5) {
-        for (let i = 0; i < 5; i++) {
-          await prisma.log.create({
-            data: {
-              action: logActions[Math.floor(Math.random() * logActions.length)],
-              projectId: project.id
-            }
+      const existingLogsCount = await Log.countDocuments({ projectId: project._id });
+      if (existingLogsCount < 3) {
+        for (const action of logActions) {
+          await Log.create({
+            action,
+            projectId: project._id
           });
         }
-        console.log(`✅ Activity logs created for: ${project.name}`);
-      } else {
-        console.log(`⏭️  Activity logs exist for: ${project.name}`);
       }
     }
     
-    // Final statistics
-    console.log('\n📊 Final Database Statistics:');
-    
-    const userCount = await prisma.user.count();
-    const projectCount = await prisma.project.count();
-    const taskCount = await Task.countDocuments();
-    const notificationCount = await prisma.notification.count();
-    const logCount = await prisma.log.count();
-    const userStatsCount = await prisma.userStats.count();
-    const projectAnalyticsCount = await prisma.projectAnalytics.count();
-    const taskMetricsCount = await prisma.taskMetrics.count();
-    
-    console.log(`👥 Users: ${userCount}`);
-    console.log(`📁 Projects: ${projectCount}`);
-    console.log(`✅ Tasks (MongoDB): ${taskCount}`);
-    console.log(`🔔 Notifications: ${notificationCount}`);
-    console.log(`📝 Activity Logs: ${logCount}`);
-    console.log(`📊 User Stats: ${userStatsCount}`);
-    console.log(`📈 Project Analytics: ${projectAnalyticsCount}`);
-    console.log(`⏱️  Task Metrics: ${taskMetricsCount}`);
-    
     console.log('\n🎉 Smart database seeding completed successfully!');
-    console.log('\n📧 Available login credentials:');
-    console.log('Admin: admin@taskforge.com / admin123');
-    console.log('User: test@taskforge.com / test123');
-    console.log('User: john@taskforge.com / user123');
-    console.log('User: jane@taskforge.com / user123');
-    console.log('User: mike@taskforge.com / user123');
-    
-    console.log('\n🚀 Your TaskForge databases are now fully populated!');
-    console.log('Ready to start development: npm run dev');
-    
   } catch (error) {
     console.error('❌ Smart seeding failed:', error);
     throw error;
@@ -405,19 +285,8 @@ async function smartSeedDatabases() {
   }
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
-  await prisma.$disconnect();
-  if (mongoose.connection.readyState === 1) {
-    await mongoose.disconnect();
-  }
-  process.exit(0);
-});
-
-// Run if called directly
-if (require.main === module) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   smartSeedDatabases().catch(console.error);
 }
 
-module.exports = smartSeedDatabases;
+export default smartSeedDatabases;

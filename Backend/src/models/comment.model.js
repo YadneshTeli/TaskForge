@@ -38,7 +38,6 @@ const CommentSchema = new mongoose.Schema({
 // Indexes for performance
 CommentSchema.index({ taskId: 1, createdAt: 1 });
 CommentSchema.index({ projectId: 1, createdAt: 1 });
-CommentSchema.index({ author: 1 });
 
 // Virtual for replies
 CommentSchema.virtual('replies', {
