@@ -11,6 +11,15 @@ class AuthService {
   static User? get currentUser => _currentUser;
   static bool get isLoggedIn => _currentUser != null;
 
+  static User? _tryParseUser(dynamic rawUser) {
+    if (rawUser is! Map) return null;
+    final userMap = Map<String, dynamic>.from(rawUser);
+    final rawId = userMap['id'] ?? userMap['_id'];
+    if (rawId == null) return null;
+    userMap['id'] = rawId.toString();
+    return User.fromJson(userMap);
+  }
+
   // Login with email and password
   static Future<User> login(String email, String password) async {
     try {
@@ -23,13 +32,7 @@ class AuthService {
       }
       
       // Store user data (or fetch from /auth/me if omitted)
-      if (response['user'] != null) {
-        final userMap = Map<String, dynamic>.from(response['user']);
-        userMap['id'] = userMap['id'].toString();
-        _currentUser = User.fromJson(userMap);
-      } else {
-        _currentUser = await RestClient.getCurrentUser();
-      }
+      _currentUser = _tryParseUser(response['user']) ?? await RestClient.getCurrentUser();
       await _storage.write(key: 'user_data', value: jsonEncode(_currentUser!.toJson()));
       
       // Initialize GraphQL client after login
@@ -68,13 +71,7 @@ class AuthService {
       }
       
       // Store user data
-      if (response['user'] != null) {
-        final userMap = Map<String, dynamic>.from(response['user']);
-        userMap['id'] = userMap['id'].toString();
-        _currentUser = User.fromJson(userMap);
-      } else {
-        _currentUser = await RestClient.getCurrentUser();
-      }
+      _currentUser = _tryParseUser(response['user']) ?? await RestClient.getCurrentUser();
       await _storage.write(key: 'user_data', value: jsonEncode(_currentUser!.toJson()));
       
       // Initialize GraphQL client after registration
@@ -147,10 +144,9 @@ class AuthService {
       }
       
       // Update user data if provided
-      if (response['user'] != null) {
-        final userMap = Map<String, dynamic>.from(response['user']);
-        userMap['id'] = userMap['id'].toString();
-        _currentUser = User.fromJson(userMap);
+      final parsedUser = _tryParseUser(response['user']);
+      if (parsedUser != null) {
+        _currentUser = parsedUser;
         await _storage.write(key: 'user_data', value: jsonEncode(_currentUser!.toJson()));
       }
     } catch (e) {

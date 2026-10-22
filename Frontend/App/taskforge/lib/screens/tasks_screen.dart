@@ -152,108 +152,126 @@ class _TasksScreenState extends State<TasksScreen> {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     TaskPriority selectedPriority = TaskPriority.medium;
-    
-    final projectState = context.read<ProjectBloc>().state;
-    final List<Project> availableProjects =
-        projectState is ProjectLoaded ? projectState.projects : [];
-    String? selectedProjectId = widget.projectId ??
-        (availableProjects.isNotEmpty ? availableProjects.first.id : null);
-    
+    String? selectedProjectId = widget.projectId;
+    final parentContext = context;
+
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Create Task'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              if (widget.projectId == null && availableProjects.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: selectedProjectId,
-                  decoration: const InputDecoration(
-                    labelText: 'Project',
-                    border: OutlineInputBorder(),
+      builder: (dialogContext) => BlocBuilder<ProjectBloc, ProjectState>(
+        builder: (context, projectState) {
+          final List<Project> availableProjects =
+              projectState is ProjectLoaded ? projectState.projects : [];
+          if (selectedProjectId == null && availableProjects.isNotEmpty) {
+            selectedProjectId = availableProjects.first.id;
+          } else if (widget.projectId == null &&
+              selectedProjectId != null &&
+              availableProjects.isNotEmpty &&
+              !availableProjects.any((p) => p.id == selectedProjectId)) {
+            selectedProjectId = availableProjects.first.id;
+          }
+
+          return StatefulBuilder(
+            builder: (context, setState) => AlertDialog(
+              title: const Text('Create Task'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                  items: availableProjects.map((project) {
-                    return DropdownMenuItem(
-                      value: project.id,
-                      child: Text(project.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => selectedProjectId = value);
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                  if (widget.projectId == null && availableProjects.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedProjectId,
+                      decoration: const InputDecoration(
+                        labelText: 'Project',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: availableProjects.map((project) {
+                        return DropdownMenuItem(
+                          value: project.id,
+                          child: Text(project.name),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => selectedProjectId = value);
+                        }
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<TaskPriority>(
+                    value: selectedPriority,
+                    decoration: const InputDecoration(
+                      labelText: 'Priority',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: TaskPriority.values.map((priority) {
+                      return DropdownMenuItem(
+                        value: priority,
+                        child: Text(priority.name.toUpperCase()),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => selectedPriority = value);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final title = titleController.text.trim();
+                    if (title.isEmpty) {
+                      ScaffoldMessenger.of(parentContext).showSnackBar(
+                        const SnackBar(content: Text('Please enter a task title')),
+                      );
+                      return;
                     }
+                    if (selectedProjectId == null) {
+                      ScaffoldMessenger.of(parentContext).showSnackBar(
+                        const SnackBar(content: Text('Please create a project first')),
+                      );
+                      return;
+                    }
+                    final input = CreateTaskInput(
+                      title: title,
+                      description: descriptionController.text.trim().isEmpty
+                          ? null
+                          : descriptionController.text.trim(),
+                      status: TaskStatus.todo,
+                      priority: selectedPriority,
+                      projectId: selectedProjectId!,
+                    );
+                    parentContext.read<TaskBloc>().add(CreateTask(input: input));
+                    Navigator.of(dialogContext).pop();
                   },
+                  child: const Text('Create'),
                 ),
               ],
-              const SizedBox(height: 16),
-              DropdownButtonFormField<TaskPriority>(
-                value: selectedPriority,
-                decoration: const InputDecoration(
-                  labelText: 'Priority',
-                  border: OutlineInputBorder(),
-                ),
-                items: TaskPriority.values.map((priority) {
-                  return DropdownMenuItem(
-                    value: priority,
-                    child: Text(priority.name.toUpperCase()),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => selectedPriority = value);
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleController.text.trim().isNotEmpty && selectedProjectId != null) {
-                  final input = CreateTaskInput(
-                    title: titleController.text.trim(),
-                    description: descriptionController.text.trim().isEmpty 
-                        ? null 
-                        : descriptionController.text.trim(),
-                    status: TaskStatus.todo,
-                    priority: selectedPriority,
-                    projectId: selectedProjectId!,
-                  );
-                  context.read<TaskBloc>().add(CreateTask(input: input));
-                  Navigator.of(context).pop();
-                } else if (selectedProjectId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please create a project first')),
-                  );
-                }
-              },
-              child: const Text('Create'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -43,6 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final settings = await UserSettingsService.getSettings();
       final prefs = await UserSettingsService.getNotificationPreferences();
       
+      if (!mounted) return;
       setState(() {
         _settings = settings['settings'] ?? {};
         _notificationPrefs = prefs['preferences'] ?? {};
@@ -61,19 +62,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _isLoading = false;
         });
-        if (!e.toString().contains('RestClient not initialized')) {
-          _showSnackBar('Failed to load settings. Please try again.');
-        }
+        _showSnackBar('Failed to load settings. Please try again.');
       }
     }
   }
 
   Future<void> _updateTheme(String theme) async {
-    setState(() {
-      _theme = theme;
-    });
     try {
       await UserSettingsService.updateSettings({'theme': theme});
+      if (!mounted) return;
+      setState(() {
+        _theme = theme;
+      });
       _showSnackBar('Theme updated successfully');
     } catch (e) {
       debugPrint('Error updating theme: $e');
@@ -244,33 +244,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              title: const Text('Light'),
+              title: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _theme == 'light'
+                    ? () {
+                        Navigator.of(context).pop();
+                        _updateTheme('light');
+                      }
+                    : null,
+                child: const Text('Light'),
+              ),
               value: 'light',
               groupValue: _theme,
-              toggleable: true,
               onChanged: (value) {
-                Navigator.of(context).pop();
-                _updateTheme(value ?? 'light');
+                if (value != null) {
+                  Navigator.of(context).pop();
+                  _updateTheme(value);
+                }
               },
             ),
             RadioListTile<String>(
-              title: const Text('Dark'),
+              title: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _theme == 'dark'
+                    ? () {
+                        Navigator.of(context).pop();
+                        _updateTheme('dark');
+                      }
+                    : null,
+                child: const Text('Dark'),
+              ),
               value: 'dark',
               groupValue: _theme,
-              toggleable: true,
               onChanged: (value) {
-                Navigator.of(context).pop();
-                _updateTheme(value ?? 'dark');
+                if (value != null) {
+                  Navigator.of(context).pop();
+                  _updateTheme(value);
+                }
               },
             ),
             RadioListTile<String>(
-              title: const Text('System Default'),
+              title: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _theme == 'system'
+                    ? () {
+                        Navigator.of(context).pop();
+                        _updateTheme('system');
+                      }
+                    : null,
+                child: const Text('System Default'),
+              ),
               value: 'system',
               groupValue: _theme,
-              toggleable: true,
               onChanged: (value) {
-                Navigator.of(context).pop();
-                _updateTheme(value ?? 'system');
+                if (value != null) {
+                  Navigator.of(context).pop();
+                  _updateTheme(value);
+                }
               },
             ),
           ],

@@ -88,11 +88,11 @@ class TaskService {
       throw Exception('Failed to delete task: ${result.exception.toString()}');
     }
 
-    final deleteData = result.data?['deleteTask'];
-    if (deleteData is Map) {
-      return deleteData['success'] == true;
+    final deleteData = result.data?['deleteTask'] as Map<String, dynamic>?;
+    if (deleteData == null) {
+      throw Exception('Failed to delete task: No data returned from server');
     }
-    return deleteData == true;
+    return deleteData['success'] == true;
   }
 
   static Future<Task> addComment(String taskId, String text) async {

@@ -6,7 +6,16 @@ import '../api/rest_client.dart';
 import '../models/project.dart';
 
 class ProjectService {
-  static GraphQLClient get _graphQLClient => GQL.client.value;
+  // Lazy getter to safely access GraphQL client
+  static GraphQLClient get _graphQLClient {
+    try {
+      return GQL.client.value;
+    } catch (e) {
+      throw Exception(
+        'GraphQL client not initialized. Ensure GQL.initClient() is called before using ProjectService. Error: $e',
+      );
+    }
+  }
 
   // GraphQL operations for main CRUD
   static Future<List<Project>> getProjects() async {
@@ -70,11 +79,11 @@ class ProjectService {
       throw Exception('Failed to delete project: ${result.exception.toString()}');
     }
 
-    final deleteData = result.data?['deleteProject'];
-    if (deleteData is Map) {
-      return deleteData['success'] == true;
+    final deleteData = result.data?['deleteProject'] as Map<String, dynamic>?;
+    if (deleteData == null) {
+      throw Exception('Failed to delete project: No data returned from server');
     }
-    return deleteData == true;
+    return deleteData['success'] == true;
   }
 
   // Analytics operations using GraphQL (Prisma data)

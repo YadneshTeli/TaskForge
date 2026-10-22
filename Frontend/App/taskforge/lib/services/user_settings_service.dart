@@ -3,10 +3,7 @@ import '../api/rest_client.dart';
 
 class UserSettingsService {
   static Future<void> _ensureClientReady() async {
-    await Future.microtask(() {});
-    if (RestClient.dio.options.baseUrl.isEmpty) {
-      throw Exception('RestClient not initialized');
-    }
+    await RestClient.init();
   }
 
   /// Get user settings

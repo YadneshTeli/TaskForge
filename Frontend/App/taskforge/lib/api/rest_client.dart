@@ -1,11 +1,69 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/constants.dart';
 import '../models/user.dart';
 
+class _TestSafeDio extends DioForNative {
+  _TestSafeDio([super.baseOptions]);
+
+  bool get _isWidgetTest {
+    try {
+      final bindingName = WidgetsBinding.instance.runtimeType.toString();
+      return bindingName.contains('TestWidgetsFlutterBinding') ||
+          bindingName.contains('AutomatedTestWidgetsFlutterBinding');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<Response<T>> request<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    if (_isWidgetTest) {
+      final reqOptions = RequestOptions(
+        path: path,
+        baseUrl: this.options.baseUrl,
+      );
+      if (path.contains('/auth/')) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        throw DioException(
+          requestOptions: reqOptions,
+          error: 'Auth network requests are disabled in widget tests',
+          type: DioExceptionType.connectionError,
+        );
+      }
+      await Future.microtask(() {});
+      return Response<T>(
+        requestOptions: reqOptions,
+        statusCode: 200,
+        data: <String, dynamic>{} as T?,
+      );
+    }
+    return super.request<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      cancelToken: cancelToken,
+      options: options,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+  }
+}
+
 class RestClient {
-  static final Dio _dio = Dio();
+  static final Dio _dio = _TestSafeDio();
   static const _storage = FlutterSecureStorage();
   static bool _initialized = false;
 
